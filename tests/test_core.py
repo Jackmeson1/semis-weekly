@@ -12,7 +12,7 @@ from pathlib import Path
 import duckdb
 
 from semis import fetch, render, signals
-from semis.__main__ import _ids_shown, _unmatched
+from semis.__main__ import _ids_shown, _numbers_in, _unmatched
 from semis.config import ID_RE, ROOT, expand_id, glossary
 
 D = dt.date
@@ -149,6 +149,12 @@ class NumberCheck(unittest.TestCase):
 
     def test_invented_number_caught(self):
         self.assertEqual(self.check('利差扩大 33bp', [28]), ['33'])
+
+    def test_fed_fractions(self):
+        # The packet has "3-3/4 to 4 percent" and "by 1/4 percentage point"; the log may write 3.75% and 25bp
+        pool = []
+        _numbers_in('raise by 1/4 percentage point to 3-3/4 to 4 percent', pool)
+        self.assertEqual(self.check('加息 25bp，区间升到 3.75% 至 4%', pool), [])
 
     def test_json_block_ignored(self):
         self.assertEqual(self.check('正文 28\n```json\n{"x": 999}\n```', [28]), [])

@@ -261,7 +261,7 @@ def finmind(con, s, src):
 
 
 def _html_text(raw):
-    t = re.sub(r'(?is)<(script|style).*?</\1>', ' ', raw)
+    t = re.sub(r'(?is)<(script|style).*?</\1>|<!--.*?-->', ' ', raw)
     t = re.sub(r'(?i)<br\s*/?>|</p>|</div>|</tr>', '\n', t)
     t = html.unescape(re.sub(r'<[^>]+>', ' ', t))
     t = re.sub(r'[ \t\xa0]+', ' ', t)

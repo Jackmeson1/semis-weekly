@@ -211,6 +211,10 @@ def _numbers_in(obj, pool):
     elif isinstance(obj, str):
         for m in re.findall(r'-?\d+(?:\.\d+)?', obj.replace(',', '')):
             pool.append(float(m))
+        # Fed statements write rates as fractions: "3-3/4 to 4 percent", "by 1/4 percentage point"
+        for whole, num, den in re.findall(r'(?<![\d/])(?:(\d+)-)?(\d+)/(\d+)(?![\d/])', obj):
+            if int(den):
+                pool.append(int(whole or 0) + int(num) / int(den))
     elif isinstance(obj, dict):
         for v in obj.values():
             _numbers_in(v, pool)
