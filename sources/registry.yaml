@@ -1,0 +1,157 @@
+# Data source registry. One entry per series. layer uses the L0–L7 codes shared with the playbook and signals.
+# legality: ok = official or openly licensed; check = publicly reachable, terms not confirmed; key = needs a free key
+# verified: the date the endpoint was last tested
+
+version: 0.3
+http:
+  # The contact email goes into the User-Agent only for SEC requests (SEC fair-access policy).
+  # Every other source gets an honest python-requests User-Agent.
+  sec_user_agent: "{CONTACT_NAME} {CONTACT_EMAIL}"
+  timeout_s: 30
+
+sources:
+  fred_csv:
+    url: https://fred.stlouisfed.org/graph/fredgraph.csv?id={id}
+    legality: ok
+    verified: 2026-10-28
+    note: No key needed. Requests without the python-requests token in the User-Agent are dropped. ICE BofA spreads only go back 3 years (both start 2023-10-30 when tested), so they have to be archived locally.
+  treasurydirect_auctions:
+    url: https://www.treasurydirect.gov/TA_WS/securities/auctioned?format=json&type={type}&days={days}
+    legality: ok
+    verified: 2026-10-28
+    note: The auction date is in competitiveAuctionCloseDate (auctionDate is empty). No when-issued yield, so the true auction tail cannot be computed.
+  treasurydirect_upcoming:
+    url: https://www.treasurydirect.gov/TA_WS/securities/upcoming?format=json
+    legality: ok
+    verified: 2026-10-28
+  cboe_vix:
+    url: https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv
+    legality: ok
+    verified: 2026-10-28
+  cboe_chain:
+    url: https://cdn-api.cboe.com/api/global/delayed_quotes/options/{ticker}.json
+    legality: check
+    verified: 2026-10-28
+    note: Public delayed data with open interest, implied vol and gamma. Fetched once a day; the raw file is archived gzipped (SPY is about 5.6MB).
+  cboe_iv30:
+    url: https://cdn-api.cboe.com/api/global/delayed_quotes/options/{ticker}.json
+    legality: check
+    verified: 2026-10-28
+    note: Same endpoint as cboe_chain; only the top-level iv30 field is kept.
+  cftc_tff:
+    url: https://publicreporting.cftc.gov/resource/gpe5-46if.json
+    legality: ok
+    verified: 2026-10-28
+    note: Socrata API. Uses the Consolidated contracts to avoid history breaks from contract renames. Tuesday positions, published Friday.
+  sec_concept:
+    url: https://data.sec.gov/api/xbrl/companyconcept/CIK{cik10}/us-gaap/{tag}.json
+    legality: ok
+    verified: 2026-10-28
+    note: Needs a User-Agent with contact details; at most 10 requests per second. Year-to-date facts are differenced into quarters and checked against each company's reported totals.
+  sec_submissions:
+    url: https://data.sec.gov/submissions/CIK{cik10}.json
+    legality: ok
+    verified: 2026-10-28
+    note: 8-K Item 2.02 = results of operations. The press release is the EX-99.1 exhibit.
+  finmind:
+    url: https://api.finmindtrade.com/api/v4/data?dataset={dataset}&data_id={id}&start_date={start}
+    legality: ok
+    verified: 2026-10-28
+    note: Works without registration one stock at a time, rate limited.
+  fed_fomc:
+    url: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+    legality: ok
+    verified: 2026-10-28
+    note: Meeting dates are parsed from the calendar page; statements are fetched from monetaryYYYYMMDDa.htm after each meeting.
+
+series:
+  # ---------- C1 credit ----------
+  - {id: hy_oas, layer: L3.credit, source: fred_csv, params: {id: BAMLH0A0HYM2}, freq: daily, unit: pct}
+  - {id: ig_oas, layer: L3.credit, source: fred_csv, params: {id: BAMLC0A0CM},   freq: daily, unit: pct}
+  - id: csp_capex
+    layer: L5.csp_capex
+    source: sec_concept
+    params: {tags: [PaymentsToAcquirePropertyPlantAndEquipment, PaymentsToAcquireProductiveAssets]}
+    entities: {MSFT: "0000789019", GOOGL: "0001652044", AMZN: "0001018724", META: "0001326801", ORCL: "0001341439"}
+    freq: quarterly
+    unit: usd
+    note: Each company uses whichever tag has the latest data (AMZN switched to PaymentsToAcquireProductiveAssets after 2017). Finance leases are not included yet.
+  - {id: csp_ocf, layer: L3.credit, source: sec_concept, params: {tags: [NetCashProvidedByUsedInOperatingActivities]},
+     entities_from: csp_capex, freq: quarterly, unit: usd}
+
+  # ---------- C2 rates ----------
+  - {id: ust10y,   layer: L1.long_end, source: fred_csv, params: {id: DGS10},  freq: daily, unit: pct}
+  - {id: ust2y,    layer: L1.fed_path, source: fred_csv, params: {id: DGS2},   freq: daily, unit: pct}
+  - {id: ust2s10s, layer: L1.long_end, source: fred_csv, params: {id: T10Y2Y}, freq: daily, unit: pct}
+  - id: auctions
+    layer: L2.treasury_issuance
+    source: treasurydirect_auctions
+    params: {type: [Note, Bond], days: 800}
+    kind: event
+    unit: event
+    fields: [competitiveAuctionCloseDate, originalSecurityTerm, securityTerm, reopening, highYield, bidToCoverRatio, offeringAmount, cusip]
+  - {id: tlt_iv30, layer: L1.long_end, source: cboe_iv30, entities: [TLT], freq: daily, unit: pct,
+     note: Archived only, not yet a signal. A public proxy for swaption implied vol; becomes a C2 signal after about 60 trading days of history}
+
+  # ---------- C3 liquidity plumbing (all FRED, aligned on Wednesdays) ----------
+  - {id: fed_assets, layer: L2.qt_balance_sheet, source: fred_csv, params: {id: WALCL},     freq: weekly, unit: usd_mn}
+  - {id: tga,        layer: L2.tga,              source: fred_csv, params: {id: WTREGEN},   freq: weekly, unit: usd_mn,
+     note: Wednesday level. Daily data is available from Treasury FiscalData; planned for v2}
+  - {id: on_rrp,     layer: L2.rrp_reserves,     source: fred_csv, params: {id: RRPONTSYD}, freq: daily,  unit: usd_bn}
+  - {id: reserves,   layer: L2.rrp_reserves,     source: fred_csv, params: {id: WRESBAL},   freq: weekly, unit: usd_mn}
+
+  # ---------- C4 positioning ----------
+  - {id: vix, layer: L4.dealer_gamma, source: cboe_vix, freq: daily, unit: index}
+  - {id: spx, layer: L4.dealer_gamma, source: fred_csv, params: {id: SP500}, freq: daily, unit: index}
+  - id: gex
+    layer: L4.dealer_gamma
+    source: cboe_chain
+    entities: [SPY, QQQ, SMH]
+    freq: daily
+    unit: usd_bn_per_1pct
+    derived: [gex_flip, gex_spot]
+    note: >
+      Computed by our code from the option chain. Dealer side follows the public convention (SqueezeMetrics white
+      paper): customers sell calls and buy puts, so dealers are long call gamma and short put gamma. The flip is
+      recomputed with Black-Scholes on a grid of spot +/-15% using the chain's implied vols. Contracts expiring on
+      the data date are excluded.
+  - {id: gex_flip, layer: L4.dealer_gamma, source: derived, freq: daily, unit: price}
+  - {id: gex_spot, layer: L4.dealer_gamma, source: derived, freq: daily, unit: price}
+  - id: cftc_net
+    layer: L4.hf_leverage
+    source: cftc_tff
+    entities: {SPX: "S&P 500 Consolidated - CHICAGO MERCANTILE EXCHANGE", NDX: "NASDAQ-100 Consolidated - CHICAGO MERCANTILE EXCHANGE"}
+    freq: weekly
+    unit: contracts
+    note: Leveraged funds, long minus short
+
+  # ---------- C5 industry ----------
+  - {id: tsmc_rev, layer: L5.supply_capacity, source: finmind, params: {dataset: TaiwanStockMonthRevenue},
+     entities: ["2330"], freq: monthly, unit: twd}
+  - {id: tw_ai_chain_rev, layer: L5.csp_capex, source: finmind, params: {dataset: TaiwanStockMonthRevenue},
+     entities: ["2317", "2382", "3231", "6669", "2308", "3711"], freq: monthly, unit: twd,
+     note: Hon Hai, Quanta, Wistron, Wiwynn, Delta Electronics, ASE; edit the list as needed}
+
+  # ---------- C6 company results ----------
+  - id: earnings
+    layer: L6.eps_revenue
+    source: sec_submissions
+    kind: event
+    unit: event
+    entities: {MSFT: "0000789019", GOOGL: "0001652044", AMZN: "0001018724", META: "0001326801", ORCL: "0001341439",
+               NVDA: "0001045810", AMD: "0000002488", AVGO: "0001730168", INTC: "0000050863", MU: "0000723125",
+               MRVL: "0001835632"}
+    note: US domestic filers (8-K) only. TSM and ASML file 6-K; planned for v2
+
+  # ---------- C7 policy and events ----------
+  - {id: fomc, layer: L1.fed_path, source: fed_fomc, kind: event, unit: event}
+  - {id: auctions_upcoming, layer: L2.treasury_issuance, source: treasurydirect_upcoming, kind: event, unit: event}
+
+# Planned for v2 (need a key or file parsing)
+later:
+  - {id: korea_chip_exports, layer: L5.pricing_cycle, legality: key, note: free data.go.kr key; where the 10/20-day data sits in the API is unconfirmed}
+  - {id: tw_export_orders,   layer: L5.csp_capex,     legality: ok,  note: Ministry of Economic Affairs monthly report, needs file parsing}
+  - {id: seaj_equipment,     layer: L5.supply_capacity, legality: ok, note: PDF}
+  - {id: dram_spot,          layer: L5.pricing_cycle, legality: check, note: DRAMeXchange public page; terms not obtained}
+  - {id: tga_daily,          layer: L2.tga,           legality: ok, note: FiscalData operating_cash_balance}
+  - {id: acm_tp10,           layer: L1.long_end,      legality: ok, note: NY Fed ACMTermPremium.xls}
