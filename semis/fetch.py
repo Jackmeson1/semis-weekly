@@ -268,8 +268,28 @@ def _html_text(raw):
     return re.sub(r'\n\s*\n+', '\n', t).strip()
 
 
+# 6-K exhibits that look like a press release are tried first: ASML's pressreleasefinancialresul.htm
+_RELEASE_NAME = re.compile(r'press|release|result|earn', re.I)
+_QUARTER = re.compile(r'\b(first|second|third|fourth)[- ]quarter\b|\bQ[1-4]\b', re.I)
+_RESULTS = re.compile(r'net income|net sales|earnings per|\bEPS\b|gross margin', re.I)
+
+
+def _6k_candidates(names, primary):
+    """HTML exhibits of a 6-K other than the cover document, likely press releases first.
+
+    Monthly revenue reports and board notices have no exhibits, so they produce no candidates.
+    """
+    docs = [x for x in names if x.endswith('.htm') and x != primary and '-index' not in x]
+    return sorted(docs, key=lambda x: not _RELEASE_NAME.search(x))
+
+
+def _looks_like_results(text):
+    head = text[:3000]
+    return bool(_QUARTER.search(head) and _RESULTS.search(head))
+
+
 def sec_earnings(con, s, src, since):
-    """Recent 8-K Item 2.02 filings (results of operations), with the EX-99.1 press release text."""
+    """Recent results releases: 8-K Item 2.02 with its EX-99.1, or a 6-K whose exhibit is a quarterly release."""
     out = {}
     for ticker, cik in s['entities'].items():
         fid, now, body, err = http.get(con, 'sec_submissions', s['id'], src['url'].format(cik10=cik),
@@ -280,7 +300,9 @@ def sec_earnings(con, s, src, since):
         rec = json.loads(body)['filings']['recent']
         n = 0
         for i, form in enumerate(rec['form']):
-            if form != '8-K' or '2.02' not in rec['items'][i] or rec['filingDate'][i] < str(since):
+            if rec['filingDate'][i] < str(since):
+                continue
+            if not (form == '8-K' and '2.02' in rec['items'][i]) and form != '6-K':
                 continue
             acc = rec['accessionNumber'][i]
             event_id = f'earnings:{ticker}:{acc}'
@@ -289,14 +311,25 @@ def sec_earnings(con, s, src, since):
             base = f'https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc.replace("-", "")}'
             f2, _, idx, e2 = http.get(con, 'sec_submissions', s['id'], base + '/index.json', entity=ticker, ext='json')
             names = [x['name'] for x in json.loads(idx)['directory']['item']] if idx else []
-            # Exhibit names vary by filer: ex99-1.htm, ex991.htm, exhibit991.htm, q3fy26ex991.htm
-            ex = next((x for x in names if re.search(r'ex(hibit)?[-_.]?99[-_.]?0?1(?!\d)', x, re.I) and x.endswith('.htm')),
-                      next((x for x in names if re.search(r'ex(hibit)?[-_.]?99', x, re.I) and x.endswith('.htm')), None))
-            text = ''
-            if ex:
-                f3, _, doc, e3 = http.get(con, 'sec_submissions', s['id'], f'{base}/{ex}', entity=ticker, ext='htm')
-                text = _html_text(doc.decode('utf-8', 'replace'))[:15000] if doc else ''
-            payload = {'ticker': ticker, 'filed': rec['filingDate'][i], 'report_date': rec['reportDate'][i],
+            ex, text = None, ''
+            if form == '8-K':
+                # Exhibit names vary by filer: ex99-1.htm, ex991.htm, exhibit991.htm, q3fy26ex991.htm
+                ex = next((x for x in names if re.search(r'ex(hibit)?[-_.]?99[-_.]?0?1(?!\d)', x, re.I) and x.endswith('.htm')),
+                          next((x for x in names if re.search(r'ex(hibit)?[-_.]?99', x, re.I) and x.endswith('.htm')), None))
+                if ex:
+                    f3, _, doc, e3 = http.get(con, 'sec_submissions', s['id'], f'{base}/{ex}', entity=ticker, ext='htm')
+                    text = _html_text(doc.decode('utf-8', 'replace'))[:15000] if doc else ''
+            else:
+                # 6-K has no item codes: keep it only if an exhibit reads like a quarterly results release
+                for name in _6k_candidates(names, rec['primaryDocument'][i])[:4]:
+                    f3, _, doc, e3 = http.get(con, 'sec_submissions', s['id'], f'{base}/{name}', entity=ticker, ext='htm')
+                    t = _html_text(doc.decode('utf-8', 'replace')) if doc else ''
+                    if _looks_like_results(t):
+                        ex, text = name, t[:15000]
+                        break
+                if not ex:
+                    continue
+            payload = {'ticker': ticker, 'form': form, 'filed': rec['filingDate'][i], 'report_date': rec['reportDate'][i],
                        'accession': acc, 'exhibit': ex, 'url': f'{base}/{ex}' if ex else base, 'text': text}
             con.execute('INSERT INTO events VALUES (?,?,?,?,?,?,?) ON CONFLICT DO NOTHING',
                         [event_id, 'earnings', s['layer'], parse_date(rec['filingDate'][i]), ticker,

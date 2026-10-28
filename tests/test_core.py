@@ -90,6 +90,28 @@ class Gex(unittest.TestCase):
         self.assertTrue(95 < flip < 105)
 
 
+class ForeignFilerResults(unittest.TestCase):
+    """6-K has no item codes: a results release is recognized by its exhibits (file layouts seen in Oct 2026)."""
+
+    def test_monthly_revenue_report_has_no_candidates(self):
+        names = ['0001046179-26-000680-index-headers.html', '0001046179-26-000680-index.html',
+                 '0001046179-26-000680.txt', 'a1.jpg', 'tsm-revenue20261008.htm']
+        self.assertEqual(fetch._6k_candidates(names, 'tsm-revenue20261008.htm'), [])
+
+    def test_press_release_named_first(self):
+        names = ['a2026_10x14xpresentation.htm', 'financial_statementsxusx.htm', 'form6-kquarterlyfilings.htm',
+                 'logo6ka.jpg', 'pressreleasefinancialresul.htm']
+        got = fetch._6k_candidates(names, 'form6-kquarterlyfilings.htm')
+        self.assertEqual(got[0], 'pressreleasefinancialresul.htm')
+        self.assertNotIn('form6-kquarterlyfilings.htm', got)
+
+    def test_results_text(self):
+        self.assertTrue(fetch._looks_like_results('ASML reports total net sales of 7.5 billion in Q3 2026'))
+        self.assertTrue(fetch._looks_like_results('TSMC Reports Third Quarter EPS of NT$17.2'))
+        self.assertFalse(fetch._looks_like_results('TSMC September 2026 Revenue Report'))
+        self.assertFalse(fetch._looks_like_results('Board approved capital appropriations; Q3 dividend'))
+
+
 class MonthMath(unittest.TestCase):
     def test_rolling_yoy_across_year_boundary(self):
         rows = []

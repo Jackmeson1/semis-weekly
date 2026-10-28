@@ -18,7 +18,7 @@ Layer: L6 · Main horizon: mid (one earnings cycle)
 
 There is no automatic signal in v1. The inputs are:
 - The earnings calendar for this week and next (`sources/calendar.yaml`)
-- Key points from reports released this week: revenue, gross margin, capex guidance, management's comments on demand (compiled by hand in v1, or taken from 8-K press releases)
+- Key points from reports released this week: revenue, gross margin, capex guidance, management's comments on demand (taken from the 8-K EX-99.1 press release; for TSMC and ASML, from the results release attached to the 6-K)
 
 ## Common pitfalls
 

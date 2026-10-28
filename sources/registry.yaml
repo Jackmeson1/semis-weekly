@@ -140,8 +140,8 @@ series:
     unit: event
     entities: {MSFT: "0000789019", GOOGL: "0001652044", AMZN: "0001018724", META: "0001326801", ORCL: "0001341439",
                NVDA: "0001045810", AMD: "0000002488", AVGO: "0001730168", INTC: "0000050863", MU: "0000723125",
-               MRVL: "0001835632"}
-    note: US domestic filers (8-K) only. TSM and ASML file 6-K; planned for v2
+               MRVL: "0001835632", TSM: "0001046179", ASML: "0000937966"}
+    note: 8-K Item 2.02 with EX-99.1 for US filers; for TSM and ASML (6-K, no item codes) a filing is kept when an exhibit reads like a quarterly results release
 
   # ---------- C7 policy and events ----------
   - {id: fomc, layer: L1.fed_path, source: fed_fomc, kind: event, unit: event}

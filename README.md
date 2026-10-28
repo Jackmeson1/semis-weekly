@@ -51,7 +51,7 @@ calibration                 record what held and which thresholds should move
 | C3 Liquidity plumbing (low weight) | FRED Fed assets, TGA, reverse repo | S-L2-02 |
 | C4 Positioning | Cboe VIX; GEX computed from Cboe option chains (SPY, QQQ, SMH); CFTC TFF | S-L4-01/02/03/04 |
 | C5 Industry | FinMind monthly revenue for TSMC and the Taiwan AI-server chain; SEC cloud capex | S-L5-01/02/03 |
-| C6 Company results | SEC 8-K Item 2.02 and the EX-99.1 press release (11 companies) | model reads the release |
+| C6 Company results | SEC 8-K Item 2.02 and the EX-99.1 press release (11 US companies); 6-K results releases (TSMC, ASML) | model reads the release |
 | C7 Policy and events | FOMC calendar and statements (fetched after each meeting); upcoming auctions; optional user notes | model reads statements and calendar |
 
 TLT 30-day implied vol is archived daily but not yet a signal; it becomes a C2 proxy for swaption vol once
@@ -106,7 +106,8 @@ gets an honest `python-requests` User-Agent (FRED drops requests that don't carr
 - No when-issued yields, so auction weakness is approximated with bid-to-cover and the 10-year move.
 - Swaption implied vol is not free; realized 10-year vol stands in for now.
 - ICE BofA spreads on FRED only go back 3 years, so percentiles have a short sample until local history builds up.
-- C6 covers 8-K filers only; TSM and ASML (6-K) are not yet included.
+- 6-K filings carry no item codes, so TSMC and ASML results are recognized by their exhibit text; a release
+  that does not mention a quarter and a results line in its opening would be missed.
 - Most thresholds are initial values marked "added"; the calibration log is how they get fixed.
 - Backfilled history uses the current data vintage; revisions cannot be restored. GEX has no history before the first snapshot.
 

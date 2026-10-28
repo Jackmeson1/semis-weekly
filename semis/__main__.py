@@ -72,7 +72,8 @@ def _channel_events(con, c, rid):
     today = dt.date.today()
     if c == 'C6':
         return {'earnings_last_21d': _events(con, 'earnings', today - dt.timedelta(days=21), today),
-                'note': '8-K Item 2.02 results releases; text is the EX-99.1 press release (first 15000 characters)'}
+                'note': 'Results releases: 8-K Item 2.02 (text is the EX-99.1 press release) and 6-K results exhibits for '
+                        'TSM (NT$) and ASML (EUR); first 15000 characters. Keep each company in its own currency.'}
     if c == 'C7':
         notes = ROOT / 'logs' / rid / 'inputs' / 'notes.md'
         return {'fomc': _events(con, 'fomc', today - dt.timedelta(days=60), today + dt.timedelta(days=60)),
