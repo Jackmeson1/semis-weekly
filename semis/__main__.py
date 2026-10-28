@@ -6,16 +6,19 @@
   python -m semis ingest  --run 2026-W44            record judgments (runs check first)
   python -m semis render  --run 2026-W44            build reports/2026-W44.html
   python -m semis status                            data freshness and unresolved fetch failures
+  python -m semis daily                             fetch everything once, log to data/fetch-logs/ (for a scheduler)
 
 Single steps: fetch, signals, packet (all take --channels C1,C2). History: backfill, review, calibrate.
 """
 import argparse
+import contextlib
 import datetime as dt
 import hashlib
 import json
 import os
 import re
 import sys
+import traceback
 
 from . import fetch, signals
 from .config import ID_RE, ROOT, lang, localized, playbook_dir, run_id, signal_defs
@@ -48,6 +51,24 @@ def cmd_fetch(a):
     con = connect()
     for sid, res in fetch.run(con, _series_for(_channels(a.channels))).items():
         print(f'{sid:18s} {res}')
+
+
+def cmd_daily(a):
+    """Fetch every source once and append the report to data/fetch-logs/<date>.log. Meant for a scheduled task:
+    option chains and implied vol can only be archived on the day they are published, so run it every weekday."""
+    log = ROOT / 'data' / 'fetch-logs' / f'{dt.date.today()}.log'
+    log.parent.mkdir(parents=True, exist_ok=True)
+    failed = False
+    with open(log, 'a', encoding='utf-8') as f, contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
+        print(f'--- {dt.datetime.now():%Y-%m-%d %H:%M:%S} daily fetch')
+        try:
+            cmd_fetch(argparse.Namespace(channels=ALL))
+        except Exception:
+            traceback.print_exc()
+            failed = True
+    print(f'-> {log.relative_to(ROOT)}')
+    if failed:
+        sys.exit(1)
 
 
 def cmd_signals(a):
@@ -422,7 +443,8 @@ def cmd_status(a):
 
 
 def main(argv=None):
-    sys.stdout.reconfigure(encoding='utf-8')
+    if sys.stdout:  # None under pythonw.exe, which the scheduled task uses
+        sys.stdout.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser(prog='semis')
     p.add_argument('--lang', choices=['zh', 'en'], help='report language (default: SEMIS_LANG in .env, else zh)')
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -450,12 +472,13 @@ def main(argv=None):
     pr.add_argument('--run', required=True)
     pr.add_argument('--channel', required=True)
     sub.add_parser('status')
+    sub.add_parser('daily')
     a = p.parse_args(argv)
     if a.lang:
         os.environ['SEMIS_LANG'] = a.lang
     {'fetch': cmd_fetch, 'signals': cmd_signals, 'packet': cmd_packet, 'prepare': cmd_prepare, 'prompt': cmd_prompt,
      'ingest': cmd_ingest, 'check': cmd_check, 'render': cmd_render, 'status': cmd_status,
-     'review': cmd_review, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill}[a.cmd](a)
+     'review': cmd_review, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
 
 
 if __name__ == '__main__':

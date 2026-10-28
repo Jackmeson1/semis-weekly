@@ -86,6 +86,27 @@ $P -m semis backfill        # optional: compute the past 26 weeks
 $P -m unittest discover -s tests
 ```
 
+## A daily fetch
+
+Some data can only be saved on the day it is published, such as option chains and implied volatility. So besides
+the weekly report, fetch once every weekday:
+
+```
+$P -m semis daily        # fetch everything once; the report is appended to data/fetch-logs/<date>.log
+```
+
+On Windows, use Task Scheduler and run it after the US close on weekdays (pythonw.exe opens no window):
+
+```powershell
+$root = "<project folder>"
+$action = New-ScheduledTaskAction -Execute "$root\.venv\Scripts\pythonw.exe" -Argument '-m semis daily' -WorkingDirectory $root
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At '14:30'   # local time
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+Register-ScheduledTask -TaskName 'semis-weekly daily fetch' -Action $action -Trigger $trigger -Settings $settings
+```
+
+On macOS or Linux, use cron: `30 21 * * 1-5 cd <project folder> && .venv/bin/python -m semis daily` (UTC).
+
 ## A weekly run
 
 The writing steps are designed for Claude Code: say "run this week's report" (or "出本周报告") and it follows

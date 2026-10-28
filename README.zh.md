@@ -65,6 +65,26 @@ $P -m semis backfill        # 可选：补算过去 26 周的指标
 $P -m unittest discover -s tests
 ```
 
+## 每天自动抓取
+
+有些数据只能在当天存下来，比如期权链和隐含波动，过了这一天就拿不到了。所以除了每周出报告，最好每个工作日自动抓一次：
+
+```
+$P -m semis daily        # 抓一遍所有数据，结果追加到 data/fetch-logs/<日期>.log
+```
+
+Windows 上用任务计划程序，每个工作日美股收盘后跑一次（用 pythonw.exe，不弹窗口）：
+
+```powershell
+$root = "<项目目录>"
+$action = New-ScheduledTaskAction -Execute "$root\.venv\Scripts\pythonw.exe" -Argument '-m semis daily' -WorkingDirectory $root
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At '14:30'   # 本地时间
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+Register-ScheduledTask -TaskName 'semis-weekly daily fetch' -Action $action -Trigger $trigger -Settings $settings
+```
+
+macOS/Linux 用 cron：`30 21 * * 1-5 cd <项目目录> && .venv/bin/python -m semis daily`（UTC 时间）。
+
 ## 每周运行
 
 写分析的几步是为 Claude Code 设计的：在 Claude Code 里说“出本周报告”（或 “run this week's report”），它会按 `.claude/skills/weekly-report/SKILL.md` 跑完整个流程。手动跑的话：
