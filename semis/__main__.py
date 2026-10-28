@@ -18,7 +18,7 @@ import re
 import sys
 
 from . import fetch, signals
-from .config import ROOT, lang, localized, playbook_dir, run_id, signal_defs
+from .config import ID_RE, ROOT, lang, localized, playbook_dir, run_id, signal_defs
 from .db import connect
 
 CHANNEL_FILES = {'C1': 'C1-credit', 'C2': 'C2-rates', 'C3': 'C3-liquidity', 'C4': 'C4-positioning',
@@ -232,8 +232,33 @@ def _unmatched(log, pool):
     return out
 
 
-def _report(name, bad):
+def _ids_shown(text):
+    """Internal IDs a reader would see: in the prose, and in the json strings the page displays.
+    signal_refs, rule_refs and input_refs are for tracing and may hold IDs; so may json keys."""
+    shown = [text.split('```json')[0]]
+    blocks = re.findall(r'```json\s*(\{.*?\})\s*```', text, re.S)
+    try:
+        j = json.loads(blocks[-1]) if blocks else {}
+    except ValueError:
+        j = {}
+
+    def walk(o):
+        if isinstance(o, str):
+            shown.append(o)
+        elif isinstance(o, dict):
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk({k: v for k, v in j.items() if k not in ('signal_refs', 'rule_refs', 'input_refs')})
+    return sorted({m.group(0) for t in shown for m in ID_RE.finditer(t)})
+
+
+def _report(name, bad, ids=()):
     print(f"{name}: {'every number has a source' if not bad else 'numbers without a source: ' + ', '.join(sorted(set(bad)))}")
+    if ids:
+        print(f"{name}: internal IDs in the text (write the names from playbook/glossary.yaml): {', '.join(ids)}")
 
 
 def cmd_check(a):
@@ -254,9 +279,9 @@ def cmd_check(a):
         for f in lower + rules:
             if f.exists():
                 _numbers_in(f.read_text(encoding='utf-8'), pool)
-        bad = _unmatched(log, pool)
-        bad_total += len(bad)
-        _report(log.name, bad)
+        bad, ids = _unmatched(log, pool), _ids_shown(log.read_text(encoding='utf-8'))
+        bad_total += len(bad) + len(ids)
+        _report(log.name, bad, ids)
     for c, stem in CHANNEL_FILES.items():
         log, packet = run_dir / f'{stem}.md', run_dir / 'inputs' / f'{c}.json'
         if not log.exists() or not packet.exists():
@@ -266,9 +291,9 @@ def cmd_check(a):
         for f in (pb / 'channels' / f'{stem}.md', pb / 'playbook.md'):
             if f.exists():
                 _numbers_in(f.read_text(encoding='utf-8'), pool)
-        bad = _unmatched(log, pool)
-        bad_total += len(bad)
-        _report(log.name, bad)
+        bad, ids = _unmatched(log, pool), _ids_shown(log.read_text(encoding='utf-8'))
+        bad_total += len(bad) + len(ids)
+        _report(log.name, bad, ids)
     sys.exit(1 if bad_total else 0)
 
 
@@ -278,7 +303,8 @@ def cmd_ingest(a):
             cmd_check(a)
         except SystemExit as e:
             if e.code:
-                print('Some numbers have no source. Fix the logs first (or pass --force if you have checked them).')
+                print('Check failed: numbers without a source or internal IDs in the text. Fix the logs first '
+                      '(or pass --force if you have checked them).')
                 sys.exit(1)
     con = connect()
     run_dir = ROOT / 'logs' / a.run

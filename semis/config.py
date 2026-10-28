@@ -1,6 +1,7 @@
 """Project paths, .env, the two YAML configs, and the report language."""
 import datetime as dt
 import os
+import re
 from pathlib import Path
 
 import yaml
@@ -39,6 +40,22 @@ def registry():
 
 def signal_defs():
     return yaml.safe_load((ROOT / 'signals' / 'signals.yaml').read_text(encoding='utf-8'))
+
+
+# Internal IDs of signals and rules (S-L3-03, S-L3-01/02, HZ-03, NOVETO-01, CH-B, SW-m-02 ...).
+# They belong in json blocks and tooltips; prose uses the names in playbook/glossary.yaml.
+ID_RE = re.compile(r'(?<![A-Za-z0-9-])(?:S-L\d-\d{2}(?:/\d{2})*|(?:NO)?VETO-\d{2}|HZ-\d{2}|INF-\d{2}|CAL-\d{2}'
+                   r'|ACT-\d{2}|INV-\d{2}|SW-[a-z]-\d{2}|CH-[A-D])(?![A-Za-z0-9])')
+
+
+def glossary():
+    return yaml.safe_load((ROOT / 'playbook' / 'glossary.yaml').read_text(encoding='utf-8'))
+
+
+def expand_id(token):
+    """S-L3-01/02 -> [S-L3-01, S-L3-02]; anything else -> [token]."""
+    head, *tails = token.split('/')
+    return [head] + [head[:-2] + t for t in tails]
 
 
 def localized(item, key, language=None):

@@ -4,15 +4,16 @@ Each test pins down a bug that actually happened or a rule that is easy to get w
 """
 import datetime as dt
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
 import duckdb
 
-from semis import fetch, signals
-from semis.__main__ import _unmatched
-from semis.config import ROOT
+from semis import fetch, render, signals
+from semis.__main__ import _ids_shown, _unmatched
+from semis.config import ID_RE, ROOT, expand_id, glossary
 
 D = dt.date
 
@@ -151,6 +152,36 @@ class NumberCheck(unittest.TestCase):
 
     def test_json_block_ignored(self):
         self.assertEqual(self.check('正文 28\n```json\n{"x": 999}\n```', [28]), [])
+
+
+class InternalIds(unittest.TestCase):
+    """Readers see names; IDs live only in signal_refs / rule_refs (the user found them unreadable, 2026-10-28)."""
+
+    def setUp(self):
+        os.environ['SEMIS_LANG'] = 'zh'
+
+    def test_prose_and_shown_json_caught(self):
+        text = ('依据规则HZ-03，见 S-L3-01/02。\n```json\n{"verdict": "VETO-01 未触发", '
+                '"chains": {"CH-B": "传导中｜……"}, "signal_refs": ["S-L3-03"], "rule_refs": ["INF-02"]}\n```')
+        self.assertEqual(_ids_shown(text), ['HZ-03', 'S-L3-01/02', 'VETO-01'])
+
+    def test_refs_and_keys_allowed(self):
+        text = '融资没有卡住。\n```json\n{"chains": {"CH-B": "未见｜……"}, "rule_refs": ["NOVETO-01"]}\n```'
+        self.assertEqual(_ids_shown(text), [])
+
+    def test_glossary_covers_every_id_in_use(self):
+        g = glossary()
+        used = set()
+        for f in list((ROOT / 'playbook').rglob('*.md')) + [ROOT / 'signals' / 'signals.yaml']:
+            for m in ID_RE.finditer(f.read_text(encoding='utf-8')):
+                used.update(expand_id(m.group(0)))
+        missing = sorted(i for i in used if i not in g or not g[i].get('zh') or not g[i].get('en'))
+        self.assertEqual(missing, [])
+
+    def test_page_turns_leftovers_into_names(self):
+        out = render._human('融资断裂（VETO-01）未触发；看 S-L3-03')
+        self.assertNotIn('（', out)
+        self.assertIn('<abbr title="S-L3-03">云厂资本开支占经营现金流</abbr>', out)
 
 
 class SignalRules(unittest.TestCase):

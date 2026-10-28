@@ -1,0 +1,69 @@
+# Reader-facing names for internal IDs.
+# Logs and the page use these names in prose; the IDs stay in json blocks (signal_refs, rule_refs) for tracing,
+# and the page shows them only as tooltips. `semis check` rejects a log that writes an ID in its prose.
+# Definitions: signals in signals/signals.yaml; rules in playbook/<lang>/aggregation.md section 2,
+# invariants in invariants.md, switch rules (SW) in the channel files.
+
+# ---------- signals ----------
+S-L3-01: {zh: 高收益债利差, en: high-yield spread}
+S-L3-02: {zh: 投资级债利差, en: investment-grade spread}
+S-L3-03: {zh: 云厂资本开支占经营现金流, en: cloud capex as a share of operating cash flow}
+S-L1-01: {zh: 10 年期美债周变动, en: 10-year Treasury weekly move}
+S-L1-02: {zh: 美债波动率, en: Treasury volatility}
+S-L1-03: {zh: 收益率曲线（2 年与 10 年之差）, en: yield curve (2-year to 10-year)}
+S-L2-01: {zh: 国债拍卖需求, en: Treasury auction demand}
+S-L2-02: {zh: 联储净流动性, en: Fed net liquidity}
+S-L4-01: {zh: 波动率过低（市场脆弱）, en: volatility too low (fragile market)}
+S-L4-02: {zh: 波动率冲击, en: volatility shock}
+S-L4-03: {zh: 做市商 gamma（GEX）, en: dealer gamma (GEX)}
+S-L4-04: {zh: 杠杆基金股指期货仓位, en: leveraged-fund index futures positioning}
+S-L5-01: {zh: 台积电月营收增速, en: TSMC monthly revenue growth}
+S-L5-02: {zh: 台湾 AI 服务器链营收增速, en: Taiwan AI-server chain revenue growth}
+S-L5-03: {zh: 云厂资本开支增速, en: cloud capex growth}
+
+# ---------- horizon ranking ----------
+HZ-01: {zh: 两周内仓位说了算, en: under two weeks, positioning decides}
+HZ-02: {zh: 三个月内先看仓位、再看信用, en: within three months, positioning first, then credit}
+HZ-03: {zh: 一个财报周期内看流动性、产业和 AI 需求, en: over one earnings cycle, liquidity, industry and AI demand decide}
+HZ-04: {zh: 半年以上看产业、AI 需求和美债供给, en: beyond six months, industry, AI demand and Treasury supply decide}
+HZ-05: {zh: 降息路径排最后, en: the Fed's rate-cut path ranks last}
+
+# ---------- vetoes and non-vetoes ----------
+VETO-01: {zh: 融资断裂可以否决方向, en: a funding break can veto the direction}
+VETO-02: {zh: 利率涨得太快可以否决几周, en: rates rising too fast can veto for a few weeks}
+VETO-03: {zh: 仓位极端只改时点, en: extreme positioning changes only the timing}
+VETO-04: {zh: 政策冲击在到期前可以否决, en: a policy shock can veto until it expires}
+NOVETO-01: {zh: 长端利率水平不构成否决, en: the level of long rates is not a veto}
+NOVETO-02: {zh: 降息路径不构成否决, en: the rate-cut path is not a veto}
+NOVETO-03: {zh: 泡沫论和崩盘论不理会, en: bubble and crash talk is ignored}
+NOVETO-04: {zh: 产业里的小延期不构成否决, en: minor industry delays are not a veto}
+
+# ---------- tradeoffs, actions, calibration ----------
+INF-01: {zh: 利率速度与 AI 需求之争看速度, en: rate speed against AI demand is decided by speed}
+INF-02: {zh: 越依赖外部融资，信用越重要, en: the more capex relies on outside funding, the more credit matters}
+INF-03: {zh: 仓位只改时点、不改方向, en: positioning changes timing, not direction}
+ACT-01: {zh: 远端定仓位和对冲、近端定买什么, en: the far horizon sets size and hedges, the near one picks what to buy}
+ACT-02: {zh: 仓位出清后可以凭仓位定入场时点, en: after a positioning flush, positioning alone can time an entry}
+CAL-01: {zh: 政策否决要设到期日, en: a policy veto needs an expiry date}
+CAL-02: {zh: 产业景气不能盖过资金面, en: strong industry data does not override funding conditions}
+CAL-03: {zh: 流动性冲击容易被低估, en: liquidity shocks are easy to underrate}
+CAL-04: {zh: 阈值随利率环境重新校准, en: thresholds are recalibrated as the rate regime changes}
+
+# ---------- invariants ----------
+INV-01: {zh: AI 需求不会到顶, en: AI demand does not peak}
+INV-02: {zh: 美债供给压长端, en: Treasury supply weighs on the long end}
+INV-03: {zh: 芯片缺货看产能, en: chip shortages follow capacity}
+INV-04: {zh: 融资是最终约束, en: funding is the final constraint}
+
+# ---------- transmission chains ----------
+CH-A: {zh: 利率波动传到信用和云厂融资, en: rate volatility into credit and cloud funding}
+CH-B: {zh: 信用传到云厂资本开支, en: credit into cloud capex}
+CH-C: {zh: 波动冲击引发被动卖出, en: a volatility shock forcing systematic selling}
+CH-D: {zh: 政策冲击传到长端和信用, en: a policy shock into the long end and credit}
+
+# ---------- switch rules (channel files) ----------
+SW-m-01: {zh: 波动回落、多头回来, en: volatility falls and longs return}
+SW-m-02: {zh: 先敢买债、再谈买股, en: bonds first, then stocks}
+SW-m-03: {zh: gamma 恢复后转向业绩, en: once gamma recovers, the focus shifts to earnings}
+SW-m-04: {zh: 挑业绩好但股价跌穿的, en: strong results trading below the pre-earnings price}
+SW-m-05: {zh: 利率波动平复后回到财报, en: once rate volatility calms, back to earnings}

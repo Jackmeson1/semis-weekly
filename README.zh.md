@@ -31,6 +31,8 @@ calibration                 回头对照，调阈值
 - **代码算，模型判。** 抓取、清洗、算信号是确定的、可复查的；模型只读结果、做判断、写日志。
 - **每一级只读下一级。** 某一级出错能定位，只重跑那一级和它上面的级；单个信道也能单独重跑。
 - **每个数字都有出处。** `semis check` 检查日志里的每个数字都能在输入包（或下一级日志）里找到，允许四舍五入和单位换算；`ingest` 不通过就不登记。
+- **写给人读，不是写给校验器。** 日志按 `playbook/<语言>/style.md` 写：结论先行、一句一事、术语在第一次出现时解释。
+  信号和规则编号只留在 json 里供追溯，正文用 `playbook/glossary.yaml` 里的名字；网页上会显示的地方出现编号，`check` 不通过。
 - **按当时能看到的数据。** 观测值记录首次看到和发布时间；回补的历史信号不会用到当时还没发布的季报和月营收。
 
 ## 信道
@@ -94,6 +96,9 @@ $P -m semis calibrate --run 2026-W44 --item 2:near:state --outcome 对 --note "�
 - 大部分阈值是标为“补充”的初值，靠校准修正。
 - 回补的历史用当前数据版本，修订无法还原；GEX 在第一次快照之前没有历史。
 
+网页按 IBM Carbon 设计体系（字阶、间距、颜色 token、tile、tag、数据表），迷你走势图参照英国政府分析职能（Analysis
+Function）的图表指南。每个状态都是颜色加形状，不单靠颜色区分。
+
 ## 目录
 
 ```
@@ -101,7 +106,7 @@ semis/        抓取、信号、渲染、命令行（python -m semis）
 sources/      registry.yaml
 signals/      signals.yaml（阈值和修改记录）
 schema/       schema.sql
-playbook/     zh/ 和 en/：目录页、不变量、聚合规则、channels/C1–C7
+playbook/     zh/ 和 en/：目录页、不变量、聚合规则、写作规范、channels/C1–C7；glossary.yaml
 prompts/      第 1 级提示词模板（zh、en）
 tests/        回归测试
 ```

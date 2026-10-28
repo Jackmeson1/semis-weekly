@@ -40,7 +40,7 @@ Every channel file has the same structure and doubles as teaching material:
 
 ## Channel log format
 
-Every level 1 log uses this skeleton. The final json block is read into the `judgments` table by `python -m semis ingest`, so field names must not change.
+Every level 1 log uses this skeleton and follows `style.md`. The final json block is read into the `judgments` table by `python -m semis ingest`, so field names must not change.
 
 ````markdown
 # C1 Credit · 2026-W44
@@ -49,11 +49,11 @@ Every level 1 log uses this skeleton. The final json block is read into the `jud
 **One line**: ……
 
 ## Evidence
-| Signal | This period | Prior period | Threshold | State |
+| Indicator | This week | Comparison | Tripwire | State |
 |---|---|---|---|---|
-| S-L3-03 Hyperscaler capex / operating cash flow | 0.847 | 0.768 (last quarter) | 0.8 / 1.0 | Near |
+| Cloud capex as a share of operating cash flow | 0.85 | last quarter 0.77 | 0.8 near, 1.0 binding | Near |
 
-Rules: INF-02, VETO-01 (not triggered)
+One or two sentences under the table: what the numbers say, and which rule they rest on (by name, for example "the more capex relies on outside funding, the more credit matters").
 
 ## Horizon implications
 - Mid: ……
@@ -63,7 +63,7 @@ Rules: INF-02, VETO-01 (not triggered)
 ……
 
 ## Explainer
-Use this week's numbers to explain what the channel measures, in 3–5 sentences, for learning purposes.
+One concept, with this week's numbers, 90–150 words in two or three paragraphs, ending with how it reaches semiconductors.
 
 ## Deviations and uncertainty
 …… Write "None" if there are none.
@@ -79,6 +79,7 @@ Use this week's numbers to explain what the channel measures, in 3–5 sentences
 - `horizons` lists only the horizons the channel covers (see channels in signals.yaml).
 - Numbers must come from the input package. Do not compute new ones.
 - The VETO, NOVETO, INF, ACT and CAL numbers mentioned in channel files are defined in `aggregation.md`, section 2. When writing a level 1 log you may read those tables for reference, but cite only the rules relevant to your channel and make no cross-channel judgments.
+- IDs go only into `signal_refs` and `rule_refs` in the json. The text, the tables and the json strings the page shows use the names in `glossary.yaml`; `semis check` rejects a log that writes IDs there.
 
 ## Evidence tags
 

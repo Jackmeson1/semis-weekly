@@ -54,7 +54,7 @@ P -m semis check  --run <week>
 P -m semis ingest --run <week>
 ```
 
-When `check` lists numbers without a source, compare them with the input packet: if it is a unit conversion,
+When `check` lists internal IDs, the log must say the rule's name or meaning instead. When it lists numbers without a source, compare them with the input packet: if it is a unit conversion,
 add it to `_SCALES`; if the model invented it, have that channel rewrite (SendMessage to its agent, or relaunch).
 `ingest` runs `check` first and refuses to record on failure.
 
@@ -67,7 +67,9 @@ Follow the formats in `playbook/<lang>/aggregation.md`:
 - `logs/<week>/synthesis.md`: reads only the three horizon logs and `playbook/<lang>/invariants.md`, in this order:
   roles, exception checks, invariant check, action.
 
-Numbers come only from the logs one level down. Cite rule IDs for every conclusion. Any departure from a rule
+Write them following `playbook/<lang>/style.md`. Numbers come only from the logs one level down. Rule and
+signal IDs go only into the json `rule_refs` and `signal_refs`; the text uses the names in `playbook/glossary.yaml`,
+and `check` rejects IDs anywhere a reader would see them. Any departure from a rule
 goes under "Deviations and uncertainty" and into the json `deviation`. If a rule itself is wrong (as CAL-03 was
 in 2026-W44), fix the playbook in both languages and add a change-log row.
 

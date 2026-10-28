@@ -39,6 +39,9 @@ calibration                 record what held and which thresholds should move
   and the ones above it. A single channel can be rerun on its own.
 - **Every number has a source.** `semis check` verifies that each number in a log appears in its input packet
   (or the logs one level down), allowing for rounding and unit conversions. `ingest` refuses logs that fail.
+- **Written for a reader, not a checker.** Logs follow `playbook/<lang>/style.md`: conclusion first, one claim
+  per sentence, terms explained where they first appear. Signal and rule IDs stay in the json for tracing; the
+  text uses the names in `playbook/glossary.yaml`, and `check` rejects IDs anywhere the page shows them.
 - **Point-in-time.** Observations keep their first-seen and release times; backfilled signals never see a
   quarterly or monthly report that was published later.
 
@@ -111,6 +114,9 @@ gets an honest `python-requests` User-Agent (FRED drops requests that don't carr
 - Most thresholds are initial values marked "added"; the calibration log is how they get fixed.
 - Backfilled history uses the current data vintage; revisions cannot be restored. GEX has no history before the first snapshot.
 
+The page follows IBM Carbon (type scale, spacing, tokens, tiles, tags, data tables), with the UK Analysis
+Function chart guidance for sparklines. Every state pairs a color with a shape, so nothing relies on color alone.
+
 ## Layout
 
 ```
@@ -118,7 +124,7 @@ semis/        fetch, signals, render, CLI (python -m semis)
 sources/      registry.yaml
 signals/      signals.yaml (thresholds and change log)
 schema/       schema.sql
-playbook/     zh/ and en/: playbook, invariants, aggregation, channels/C1–C7
+playbook/     zh/ and en/: playbook, invariants, aggregation, style, channels/C1–C7; glossary.yaml
 prompts/      level-1 prompt templates (zh, en)
 tests/        regression tests
 ```

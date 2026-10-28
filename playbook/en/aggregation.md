@@ -39,7 +39,7 @@ Derived from 393 filtered pairwise comparisons. The core entries hold under all 
 
 ### Horizon log format
 
-Files `logs/<week>/near.md`, `mid.md`, `far.md`. Numbers must come only from level 1 logs.
+Files `logs/<week>/near.md`, `mid.md`, `far.md`. Numbers must come only from level 1 logs. Follow `style.md`: names, not IDs, in the text and tables.
 
 ````markdown
 # Mid · two weeks to one earnings cycle · 2026-W44
@@ -57,7 +57,7 @@ Files `logs/<week>/near.md`, `mid.md`, `far.md`. Numbers must come only from lev
 ## Transmission chains
 | Chain | Status | Note |
 |---|---|---|
-| CH-A | Transmitting, downstream unconfirmed / Not seen / Not applicable | …… |
+| Rate volatility into credit and cloud funding | Transmitting, downstream unconfirmed / Not seen / Not applicable | …… |
 
 ## Conclusion
 Answer this horizon's question (see the table in section 1).
@@ -75,7 +75,7 @@ Answer this horizon's question (see the table in section 1).
 
 ### Synthesis log format
 
-File `logs/<week>/synthesis.md`. Numbers must come only from level 1 and level 2 logs.
+File `logs/<week>/synthesis.md`. Numbers must come only from level 1 and level 2 logs. Follow `style.md`.
 
 ````markdown
 # Synthesis · 2026-W44
@@ -87,7 +87,7 @@ File `logs/<week>/synthesis.md`. Numbers must come only from level 1 and level 2
 Far sets direction: ……; mid sets position size and hedging: ……; near sets timing: ……
 
 ## Exception checks
-Whether VETO-01, CAL-02 and CAL-03 fired.
+Three questions, each answered yes or no with the evidence: Is funding blocked? Is strong industry data hiding a funding risk? Are rate volatility and credit spreads in trouble at the same time?
 
 ## Invariant check
 | Invariant | Status | Basis |
