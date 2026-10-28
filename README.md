@@ -5,8 +5,6 @@
 A weekly report for semiconductor investors that looks past earnings: interest rates, credit, market liquidity,
 positioning and policy.
 
-[中文说明](README.zh.md)
-
 ## What is missing
 
 Chip stocks often move for reasons other than earnings: rates jump, borrowing gets more expensive, or too many
@@ -39,13 +37,15 @@ Think of macro as the brakes and earnings as the accelerator. While the brakes a
 industry are enough. Once the brakes are on, they decide. Which brake matters most depends on how far ahead you
 look. Here is how the system is built, in five layers.
 
+![A one-minute walk through the five layers](docs/img/explainer.gif)
+
 ### Layer 1: seven channels, each reading only its own data
 
 Macro is messy, so it is split into seven channels. Each answers one question and writes its own call. No channel
 is swayed by another, and when one goes wrong, only that one is redone. The seven calls then feed the far, mid
 and near horizons.
 
-![The seven channels, their data sources, and which horizon each one feeds](docs/img/channels.en.svg)
+![The seven channels, their data sources, and which horizon each one feeds](docs/img/channels.svg)
 
 ### Layer 2: who decides at each horizon
 
@@ -55,7 +55,7 @@ season, credit, liquidity, the industry and AI demand carry equal weight. Beyond
 demand and Treasury supply decide. The Fed's rate-cut path ranks last everywhere, because it has to reach long
 rates and liquidity before it moves stocks.
 
-![Who decides at each horizon](docs/img/horizons.en.svg)
+![Who decides at each horizon](docs/img/horizons.svg)
 
 ### Layer 3: what can overturn the direction, and what cannot
 
@@ -64,7 +64,7 @@ override it. A funding break is the only one that changes the direction: credit 
 spend more than they earn. The other three only call a pause. The four on the right are common bearish arguments
 that cannot overturn the direction under these rules.
 
-![Four things that can overturn the direction, and four that cannot](docs/img/vetoes.en.svg)
+![Four things that can overturn the direction, and four that cannot](docs/img/vetoes.svg)
 
 ### Layer 4: how channels pass pressure along
 
@@ -72,7 +72,7 @@ The channels are judged separately, so none of them sees pressure passing from o
 combined by horizon, four known chains are checked: if the upstream end has tightened and the downstream end has
 not moved yet, the chain is marked "transmitting." That early warning is what separate judgments miss.
 
-![Four transmission chains and their state in 2026-W44](docs/img/chains.en.svg)
+![Four transmission chains and their state in 2026-W44](docs/img/chains.svg)
 
 ### Layer 5: three horizons, one action
 
@@ -81,7 +81,7 @@ timing. When they disagree, they are not averaged; each decides its own part. Th
 Is funding blocked? Is strong industry data hiding a funding risk? Are rate volatility and credit spreads in
 trouble at the same time?
 
-![How the three horizons combined into one action in 2026-W44](docs/img/action.en.svg)
+![How the three horizons combined into one action in 2026-W44](docs/img/action.svg)
 
 ## What a report contains
 
@@ -94,7 +94,7 @@ trouble at the same time?
 
 ## How it works
 
-![Pipeline: data, indicators, three levels of judgment, and the number check](docs/img/pipeline.en.svg)
+![Pipeline: data, indicators, three levels of judgment, and the number check](docs/img/pipeline.svg)
 
 1. **Fetch.** Every source is free, and most are official: the Fed's FRED database, SEC filings, the US
    Treasury, the CFTC, Cboe option data, and Taiwan companies' monthly revenue.
@@ -148,7 +148,7 @@ On macOS or Linux, use cron: `30 21 * * 1-5 cd <project folder> && .venv/bin/pyt
 
 ## A weekly run
 
-The writing steps are designed for Claude Code: say "run this week's report" (or "出本周报告") and it follows
+The writing steps are designed for Claude Code: say "run this week's report" and it follows
 `.claude/skills/weekly-report/SKILL.md` end to end. By hand:
 
 ```
@@ -162,8 +162,10 @@ $P -m semis review                                 # calls from 4–8 weeks ago 
 $P -m semis calibrate --run 2026-W44 --item 2:near:state --outcome right --note "..."
 ```
 
-`--lang en|zh` (or `SEMIS_LANG` in `.env`) picks the language of the rulebook, the prompts and the page. One
-report is in one language.
+Everything language-specific lives in one folder, `playbook/<lang>/`: the rulebook, the style guide, the
+glossary, the level-1 prompt template (`prompt-level1.md`) and the page text (`locale.yaml`). English ships here.
+To run in another language, add a folder (`private/playbook/<lang>/` is git-ignored for one you keep local) and
+pass `--lang <lang>` or set `SEMIS_LANG` in `.env`. One report is in one language.
 
 ## Data sources and terms
 
@@ -195,10 +197,10 @@ semis/        fetch, indicators, page, command line (python -m semis)
 sources/      data registry (registry.yaml)
 signals/      indicator definitions and tripwires (signals.yaml), with a change log
 schema/       database schema (schema.sql)
-playbook/     the rulebook, zh/ and en/; glossary.yaml maps internal codes to plain names
-prompts/      task templates for the AI models (zh, en)
+playbook/en/  everything in English: rulebook, style guide, glossary, prompt template, page text (locale.yaml)
 tests/        regression tests
-docs/         the README diagrams, generated by python docs/figures.py (both languages)
+docs/         the README diagrams, generated by python docs/figures.py
+video/        the animated explainer above, made with Remotion (npm install, then npm run render)
 ```
 
 Not in the repository: `.env`, `data/` (database and raw archive), `logs/`, `reports/`.

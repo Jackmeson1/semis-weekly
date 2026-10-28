@@ -1,6 +1,6 @@
 """Command line entry point.
 
-  python -m semis [--lang zh|en] prepare            fetch -> signals -> level-1 input packets (all channels)
+  python -m semis [--lang en] prepare               fetch -> signals -> level-1 input packets (all channels)
   python -m semis prompt  --run 2026-W44 --channel C4   print the level-1 task for one channel
   python -m semis check   --run 2026-W44            every number in a log must have a source
   python -m semis ingest  --run 2026-W44            record judgments (runs check first)
@@ -21,13 +21,12 @@ import sys
 import traceback
 
 from . import fetch, signals
-from .config import ID_RE, ROOT, lang, localized, playbook_dir, run_id, signal_defs
+from .config import ID_RE, ROOT, lang, locale, localized, playbook_dir, run_id, signal_defs
 from .db import connect
 
 CHANNEL_FILES = {'C1': 'C1-credit', 'C2': 'C2-rates', 'C3': 'C3-liquidity', 'C4': 'C4-positioning',
                  'C5': 'C5-industry', 'C6': 'C6-company', 'C7': 'C7-policy'}
 ALL = ','.join(CHANNEL_FILES)
-BASIS_EN = {'作者': 'author', '推断': 'inferred', '补充': 'added'}
 
 
 def _channels(arg):
@@ -127,13 +126,13 @@ def cmd_packet(a):
             basis = d.get('basis')
             sigs.append({'id': sid, 'name': localized(d, 'name', language), 'state': state, 'value': value,
                          'data_as_of': str(as_of), 'thresholds': d.get('thresholds'),
-                         'basis': BASIS_EN.get(basis, basis) if language == 'en' else basis,
+                         'basis': locale(language).get('basis', {}).get(basis, basis),
                          'note': localized(d, 'note', language), 'detail': json.loads(detail),
                          'history_8w': [{'run': r, 'state': s, 'value': None if v is None else round(v, 3), 'mode': m}
                                         for r, s, v, m in hist]})
         packet = {'run_id': rid, 'language': language, 'channel': c, 'name': localized(meta, 'name', language),
                   'horizons': meta['horizons'], 'weight': meta.get('weight', 'normal'),
-                  'rules_file': f'playbook/{language}/channels/{CHANNEL_FILES[c]}.md',
+                  'rules_file': (playbook_dir(language) / 'channels' / f'{CHANNEL_FILES[c]}.md').relative_to(ROOT).as_posix(),
                   'log_file': f'logs/{rid}/{CHANNEL_FILES[c]}.md', 'signals': sigs}
         ev = _channel_events(con, c, rid)
         if ev is not None:
@@ -143,68 +142,19 @@ def cmd_packet(a):
         print(f'{c}: {len(sigs)} signals -> {p.relative_to(ROOT).as_posix()}')
 
 
-EXTRA = {
-    'zh': {
-        'C2': '- S-L1-01 是带符号的 5 日变化（v0.3）：上涨按阈值判，下跌最多 watch。下跌时讲清含义取决于原因，输入包没有原因就写没有。\n'
-              '- S-L2-01 认购倍数“偏弱”需比前 6 场均值低 0.05 以上（v0.3）。拍卖日 10 年期变化为 null 时写明没判定。',
-        'C3': '- 本信道权重低（作者 2025-11 起认为不必再盯 TGA）。单独 binding 也不足以判中期收紧。\n'
-              '- 逆回购余额接近 0 时，讲清楚“缓冲已用完”意味着什么。',
-        'C4': '- 输入包里 GEX 的 history_days 是快照天数。只有 1 天时不能说“和上周比”，要写“第一次快照”。\n'
-              '- GEX 依赖做市商方向假设（客户卖 call、买 put），gamma flip 不是事实价位，要在“偏离与不确定”里说明。\n'
-              '- 另加一项：按修复顺序（gamma → CTA → 长线资金），现在在第几步。',
-        'C5': '- 月营收和 capex 是月度、季度数据，本周没有新数据时写“沿用上期”，注明数据日期。各公司 capex 季度不对齐，要说明。',
-        'C6': '- 输入包 events.earnings_last_21d 里有新闻稿正文（text）。只从正文里取数字和管理层表述，重点是营收、毛利、capex 指引、对 AI 需求的说法。\n'
-              '- 没有出现在输入包里的公司，写“最近 21 天没有业绩公告”，不要猜它们的发布日期或结果。\n'
-              '- 本信道的“状态”表示财报对 C5 的问题（云厂 capex 回报、芯片需求）是加分、减分还是无信息：加分写 slack，减分写 watch 或 binding，无信息写 na。',
-        'C7': '- FOMC 事件里有 statement（声明原文）时，按原文写决议和措辞变化；最近一次决议也要写，作为背景。'
-              '会议已结束但没有 statement、user_notes 也没写时，写“结果待补”，不要猜。\n'
-              '- 列出未来 60 天的 FOMC（标出带经济预测的那次）和未来 14 天的国债拍卖。\n'
-              '- 本信道的“状态”表示有没有政策冲击在生效：没有写 slack；有但在到期前写 watch；冲击刚出现写 binding。',
-    },
-    'en': {
-        'C2': '- S-L1-01 is the signed 5-day change (v0.3): rises are judged against the thresholds, falls are capped at '
-              'watch. For a fall, explain that the meaning depends on the cause; if the packet has no cause, say so.\n'
-              '- S-L2-01 counts bid-to-cover as weak only when it is at least 0.05 below the prior-6 mean (v0.3). '
-              'If the 10-year change on an auction day is null, say it was not judged.',
-        'C3': '- This channel is low weight (from 2025-11 the author stopped watching the TGA closely). Even binding on '
-              'its own is not enough to call the mid horizon tight.\n'
-              '- If the reverse repo balance is near zero, explain what an exhausted buffer means.',
-        'C4': '- history_days for GEX is the number of snapshots. With 1 day you cannot compare with last week; write '
-              '"first snapshot".\n'
-              '- GEX rests on an assumption about dealer side (customers sell calls, buy puts); the gamma flip is not '
-              'a fact. Say so under Deviations and uncertainty.\n'
-              '- Add one item: in the repair sequence (gamma -> CTA -> long-only money), which step are we at.',
-        'C5': '- Monthly revenue and capex are monthly and quarterly data. If nothing new arrived this week, write '
-              '"carried over" with the data date. Company capex quarters do not line up; say so.',
-        'C6': '- events.earnings_last_21d holds the press release text (text). Take numbers and management statements '
-              'only from that text: revenue, margin, capex guidance, comments on AI demand.\n'
-              '- For companies not in the packet, write "no results release in the last 21 days"; do not guess dates '
-              'or results.\n'
-              '- The channel state says whether results add to, subtract from, or say nothing about the C5 question '
-              '(cloud capex returns, chip demand): adds = slack, subtracts = watch or binding, nothing = na.',
-        'C7': '- When an FOMC event has a statement, write the decision and wording changes from the statement text; '
-              'also give the most recent decision as background. If a meeting has ended with no statement and no '
-              'user note, write "result pending"; do not guess.\n'
-              '- List FOMC meetings in the next 60 days (mark the one with projections) and Treasury auctions in the '
-              'next 14 days.\n'
-              '- The channel state says whether a policy shock is in force: none = slack; in force but before expiry '
-              '= watch; just appeared = binding.',
-    },
-}
-HORIZON_LABEL = {'zh': {'near': 'near（近）', 'mid': 'mid（中）', 'far': 'far（远）'},
-                 'en': {'near': 'near', 'mid': 'mid', 'far': 'far'}}
-
-
 def cmd_prompt(a):
+    """The level-1 task for one channel: the language's prompt-level1.md with its per-channel notes filled in."""
     language = lang()
     meta = signal_defs()['channels'][a.channel]
-    tpl = (ROOT / 'prompts' / f'level1.{language}.md').read_text(encoding='utf-8')
-    sep = '、' if language == 'zh' else ', '
+    pb = playbook_dir(language)
+    tpl = (pb / 'prompt-level1.md').read_text(encoding='utf-8')
+    loc = locale(language)['prompt']
     text = (tpl.replace('{name}', localized(meta, 'name', language)).replace('{channel}', a.channel)
             .replace('{run}', a.run).replace('{stem}', CHANNEL_FILES[a.channel])
-            .replace('{horizons}', sep.join(HORIZON_LABEL[language][h] for h in meta['horizons']))
-            .replace('{extra}', EXTRA[language].get(a.channel, '')).replace('{root_posix}', ROOT.as_posix())
-            .replace('{root}', str(ROOT)).replace('{{', '{').replace('}}', '}'))
+            .replace('{horizons}', loc['enum_sep'].join(loc['horizons'][h] for h in meta['horizons']))
+            .replace('{extra}', loc['notes'].get(a.channel, '')).replace('{playbook}', str(pb))
+            .replace('{root_posix}', ROOT.as_posix()).replace('{root}', str(ROOT))
+            .replace('{{', '{').replace('}}', '}'))
     print(text)
 
 
@@ -216,11 +166,12 @@ SCOPES = {**{v: (1, k) for k, v in CHANNEL_FILES.items()},
 # Identifiers, dates and counted units are not checked as numbers.
 _ID_PATTERNS = [
     r'\d{4}-\d{2}-\d{2}', r'\d{4}-W\d{2}', r'\b(?:S-L\d-\d{2}|[A-Z]{2,7}-[A-Za-z]?-?\d{2}|CH-[A-D])\b',
-    r'\bL\d(?:\.\w+)?\b', r'\bC\d\b', r'\d+(?:\.\d+)?\s*(?:亿|万)?\s*(?:个交易日|个月|个季度|季|年|周|天|日|场|家)',
+    r'\bL\d(?:\.\w+)?\b', r'\bC\d\b',
     r'\b\d+\s*(?:trading days?|days?|weeks?|months?|quarters?|years?|auctions?|companies|snapshots?)\b']
+# A language adds its own counted units in locale.yaml (check.counted_units)
 
-# Allowed unit conversions: percent <-> bp (x100, /100); Chinese 亿: $bn -> 亿 (x10), 亿 -> $bn (/10),
-# dollars -> 亿 (/1e8); dollars -> $mn, $bn (/1e6, /1e9)
+# Allowed unit conversions: percent <-> bp (x100, /100); $bn <-> units of 1e8 (x10, /10), which some languages
+# count in; dollars -> 1e8 units, $mn, $bn (/1e8, /1e6, /1e9)
 _SCALES = (1, 100, 0.01, 10, 0.1, 1e-6, 1e-8, 1e-9)
 
 
@@ -247,7 +198,7 @@ def _numbers_in(obj, pool):
 def _unmatched(log, pool):
     pool = {s * v * x for x in pool for v in (1, -1) for s in _SCALES}
     text = log.read_text(encoding='utf-8').split('```json')[0].replace(',', '')
-    for pat in _ID_PATTERNS:
+    for pat in _ID_PATTERNS + [p for p in [locale().get('check', {}).get('counted_units')] if p]:
         text = re.sub(pat, ' ', text, flags=re.I)
     out = []
     for m in re.finditer(r'(?<![\w.])-?\d+(?:\.(\d+))?', text):
@@ -283,7 +234,7 @@ def _ids_shown(text):
 def _report(name, bad, ids=()):
     print(f"{name}: {'every number has a source' if not bad else 'numbers without a source: ' + ', '.join(sorted(set(bad)))}")
     if ids:
-        print(f"{name}: internal IDs in the text (write the names from playbook/glossary.yaml): {', '.join(ids)}")
+        print(f"{name}: internal IDs in the text (write the names from the glossary): {', '.join(ids)}")
 
 
 def cmd_check(a):
@@ -386,12 +337,14 @@ def cmd_review(a):
         print(f'{rid}  {level}:{scope}:{item}  {verdict}')
 
 
-OUTCOMES = {'right': 'right', 'wrong': 'wrong', 'unclear': 'unclear', '对': 'right', '错': 'wrong', '说不清': 'unclear'}
+OUTCOMES = ('right', 'wrong', 'unclear')
 
 
 def cmd_calibrate(a):
     con = connect()
-    outcome = OUTCOMES[a.outcome]
+    outcome = {**{o: o for o in OUTCOMES}, **locale().get('outcomes', {})}.get(a.outcome)
+    if outcome is None:
+        sys.exit(f'--outcome must be one of {", ".join(OUTCOMES)}')
     con.execute('INSERT OR REPLACE INTO calibration VALUES (?,?,?,?,?,?)',
                 [a.run, a.item, dt.date.today(), outcome, a.note, a.threshold_change])
     print(f'recorded {a.run} {a.item}: {outcome}')
@@ -446,7 +399,8 @@ def main(argv=None):
     if sys.stdout:  # None under pythonw.exe, which the scheduled task uses
         sys.stdout.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser(prog='semis')
-    p.add_argument('--lang', choices=['zh', 'en'], help='report language (default: SEMIS_LANG in .env, else zh)')
+    p.add_argument('--lang', help='report language: a folder in playbook/ or private/playbook/ '
+                                   '(default: SEMIS_LANG in .env, else en)')
     sub = p.add_subparsers(dest='cmd', required=True)
     for name in ('fetch', 'signals', 'packet', 'prepare'):
         s = sub.add_parser(name)
@@ -463,7 +417,7 @@ def main(argv=None):
     cal = sub.add_parser('calibrate')
     cal.add_argument('--run', required=True)
     cal.add_argument('--item', required=True, help='e.g. 2:near:state, 3:all:action, 1:C4:state')
-    cal.add_argument('--outcome', required=True, choices=list(OUTCOMES))
+    cal.add_argument('--outcome', required=True, help='right, wrong or unclear')
     cal.add_argument('--note')
     cal.add_argument('--threshold-change', dest='threshold_change')
     sub.add_parser('check').add_argument('--run', required=True)

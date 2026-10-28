@@ -1,6 +1,6 @@
 ---
 name: weekly-report
-description: Build and publish the semis-weekly far-layer report (7 channels → far/mid/near → synthesis). Use when the user says "run this week's report", "weekly report", "rerun channel C4", or in Chinese "出本周报告", "出周报", "跑一下周报", "更新这周的远端周报", "重跑某个信道".
+description: Build and publish the semis-weekly far-layer report (7 channels → far/mid/near → synthesis). Use when the user asks to run, build, update or publish this week's report, or to rerun one channel (for example "rerun channel C4"), in any language.
 ---
 
 # Build this week's far-layer report
@@ -8,8 +8,9 @@ description: Build and publish the semis-weekly far-layer report (7 channels →
 Project root: the `semis-weekly/` directory that contains this skill. Python is `.venv/Scripts/python.exe`
 (3.12, managed with uv); `P` below means that interpreter. Run every command from the project root.
 
-Language: `SEMIS_LANG` in `.env` (zh or en), or pass `--lang` before the subcommand, e.g. `P -m semis --lang en prepare`.
-Use the same language for every step of one issue. Below, `<lang>` is that language.
+Language: `SEMIS_LANG` in `.env` (default en), or pass `--lang` before the subcommand, e.g. `P -m semis --lang en prepare`.
+Use the same language for every step of one issue. Below, `<lang>` is that language; its folder is `playbook/<lang>/`
+(or `private/playbook/<lang>/` for a language kept out of the repo).
 
 Rules live in `playbook/<lang>/playbook.md` (three-level aggregation, log formats, evidence tags). Read the files
 each time; do not work from memory.
@@ -68,10 +69,10 @@ Follow the formats in `playbook/<lang>/aggregation.md`:
   roles, exception checks, invariant check, action.
 
 Write them following `playbook/<lang>/style.md`. Numbers come only from the logs one level down. Rule and
-signal IDs go only into the json `rule_refs` and `signal_refs`; the text uses the names in `playbook/glossary.yaml`,
+signal IDs go only into the json `rule_refs` and `signal_refs`; the text uses the names in `playbook/<lang>/glossary.yaml`,
 and `check` rejects IDs anywhere a reader would see them. Any departure from a rule
 goes under "Deviations and uncertainty" and into the json `deviation`. If a rule itself is wrong (as CAL-03 was
-in 2026-W44), fix the playbook in both languages and add a change-log row.
+in 2026-W44), fix the playbook in every language folder you use and add a change-log row.
 
 Then run `check` and `ingest` again.
 

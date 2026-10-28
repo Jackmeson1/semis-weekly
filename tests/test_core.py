@@ -137,57 +137,58 @@ class NumberCheck(unittest.TestCase):
             p.write_text(text, encoding='utf-8')
             return _unmatched(p, pool)
 
-    def test_chinese_yi_conversions(self):
-        # Chinese units: $bn -> 亿 (x10), dollars -> 亿 (/1e8)
-        self.assertEqual(self.check('负 21.2 亿美元，440 亿美元', [-2.12, 44000000000]), [])
+    def test_hundred_million_units(self):
+        # Some languages count money in units of 1e8: $bn -> x10, dollars -> /1e8
+        self.assertEqual(self.check('free cash flow -21.2 and an auction of 440, in hundred-million units',
+                                    [-2.12, 44000000000]), [])
 
     def test_english_units(self):
         self.assertEqual(self.check('free cash flow of -$2.12bn over 5 trading days, $44bn auction', [-2.12, 44e9]), [])
 
     def test_ids_and_dates_ignored(self):
-        self.assertEqual(self.check('S-L3-03 和 VETO-01，2026-10-26，CH-B，C4，L5.csp_capex', []), [])
+        self.assertEqual(self.check('S-L3-03 and VETO-01, 2026-10-26, CH-B, C4, L5.csp_capex', []), [])
 
     def test_invented_number_caught(self):
-        self.assertEqual(self.check('利差扩大 33bp', [28]), ['33'])
+        self.assertEqual(self.check('the spread widened 33bp', [28]), ['33'])
 
     def test_fed_fractions(self):
         # The packet has "3-3/4 to 4 percent" and "by 1/4 percentage point"; the log may write 3.75% and 25bp
         pool = []
         _numbers_in('raise by 1/4 percentage point to 3-3/4 to 4 percent', pool)
-        self.assertEqual(self.check('加息 25bp，区间升到 3.75% 至 4%', pool), [])
+        self.assertEqual(self.check('a 25bp hike to 3.75% to 4%', pool), [])
 
     def test_json_block_ignored(self):
-        self.assertEqual(self.check('正文 28\n```json\n{"x": 999}\n```', [28]), [])
+        self.assertEqual(self.check('text 28\n```json\n{"x": 999}\n```', [28]), [])
 
 
 class InternalIds(unittest.TestCase):
     """Readers see names; IDs live only in signal_refs / rule_refs (the user found them unreadable, 2026-10-28)."""
 
     def setUp(self):
-        os.environ['SEMIS_LANG'] = 'zh'
+        os.environ['SEMIS_LANG'] = 'en'
 
     def test_prose_and_shown_json_caught(self):
-        text = ('依据规则HZ-03，见 S-L3-01/02。\n```json\n{"verdict": "VETO-01 未触发", '
-                '"chains": {"CH-B": "传导中｜……"}, "signal_refs": ["S-L3-03"], "rule_refs": ["INF-02"]}\n```')
+        text = ('Per rule HZ-03, see S-L3-01/02.\n```json\n{"verdict": "VETO-01 not triggered", '
+                '"chains": {"CH-B": "Transmitting｜..."}, "signal_refs": ["S-L3-03"], "rule_refs": ["INF-02"]}\n```')
         self.assertEqual(_ids_shown(text), ['HZ-03', 'S-L3-01/02', 'VETO-01'])
 
     def test_refs_and_keys_allowed(self):
-        text = '融资没有卡住。\n```json\n{"chains": {"CH-B": "未见｜……"}, "rule_refs": ["NOVETO-01"]}\n```'
+        text = 'Funding is not blocked.\n```json\n{"chains": {"CH-B": "Not seen｜..."}, "rule_refs": ["NOVETO-01"]}\n```'
         self.assertEqual(_ids_shown(text), [])
 
     def test_glossary_covers_every_id_in_use(self):
-        g = glossary()
+        g = glossary('en')
         used = set()
-        for f in list((ROOT / 'playbook').rglob('*.md')) + [ROOT / 'signals' / 'signals.yaml']:
+        for f in list((ROOT / 'playbook' / 'en').rglob('*.md')) + [ROOT / 'signals' / 'signals.yaml']:
             for m in ID_RE.finditer(f.read_text(encoding='utf-8')):
                 used.update(expand_id(m.group(0)))
-        missing = sorted(i for i in used if i not in g or not g[i].get('zh') or not g[i].get('en'))
+        missing = sorted(i for i in used if not g.get(i))
         self.assertEqual(missing, [])
 
     def test_page_turns_leftovers_into_names(self):
-        out = render._human('融资断裂（VETO-01）未触发；看 S-L3-03')
-        self.assertNotIn('（', out)
-        self.assertIn('<abbr title="S-L3-03">云厂资本开支占经营现金流</abbr>', out)
+        out = render._human('A funding break (VETO-01) has not happened; see S-L3-03')
+        self.assertNotIn('(', out)
+        self.assertIn('<abbr title="S-L3-03">cloud capex as a share of operating cash flow</abbr>', out)
 
 
 class SignalRules(unittest.TestCase):

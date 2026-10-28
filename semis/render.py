@@ -10,103 +10,13 @@ import re
 
 import markdown
 
-from .config import ID_RE, ROOT, expand_id, glossary, lang, localized, registry, signal_defs
+from .config import ID_RE, ROOT, expand_id, glossary, lang, locale, localized, registry, signal_defs
 from .db import series
 
 FILES = {'C1': 'C1-credit', 'C2': 'C2-rates', 'C3': 'C3-liquidity', 'C4': 'C4-positioning',
          'C5': 'C5-industry', 'C6': 'C6-company', 'C7': 'C7-policy'}
 STATE_CLASS = {'slack': 'ok', 'watch': 'warn', 'binding': 'bad', 'na': 'na'}
 
-T = {
-    'zh': {
-        'title': '远端周报 {rid}', 'eyebrow': '半导体远端周报', 'asof': '数据截至 {asof} · 生成于 {today}',
-        'state': {'slack': '没收紧', 'watch': '接近', 'binding': '收紧', 'na': '数据缺失'},
-        'hz': {'far': ('远', '半年以上', '方向还成立吗'), 'mid': ('中', '两周到一个财报周期', '仓位开多大、要不要对冲'),
-               'near': ('近', '两周以内', '现在是进出的好时点吗')},
-        'nav': {'synthesis': '综合', 'horizons': '远中近', 'history': '信号历史', 'channels': '信道',
-                'calendar': '日程', 'data': '数据'},
-        'sec': {'synthesis': '综合', 'invariants': '不变量体检', 'horizons': '远、中、近', 'history': '15 个信号，过去 27 周',
-                'channels': '信道', 'calendar': '日程', 'data': '数据状态'},
-        'no_l3': '第 3 级综合还没生成。先看下面的远中近；如果第 2 级也没有，那里是各信道“期限含义”的归组。',
-        'no_l2': '第 2 级还没生成，这里是各信道的期限含义',
-        'no_hz': '没有覆盖这个期限的信道', 'no_log': '本期没有日志', 'low_weight': '低权重',
-        'full_synth': '完整综合日志：分工、例外检查、偏离汇总', 'full_hz': '完整期限日志', 'full_ch': '完整日志：依据、期限含义、讲解',
-        'history_cap': '每格一周，按信道分组。悬停看数值，本周加粗外框。',
-        'backfill_note': '{first} 之前为回补：用当前数据版本，按发布时间过滤，修订过的值无法还原',
-        'chains': {'CH-A': 'C2 利率波动 → C1 信用 → 融资 → C5', 'CH-B': 'C1 信用 → 云厂 capex → C5',
-                   'CH-C': 'C4 波动冲击 → 被动卖 → 去杠杆', 'CH-D': 'C7 政策冲击 → C2 长端 → C1 信用'},
-        'chains_cap': '传导链',
-        'cal_head': ('日期', '类型', '内容'), 'cal_fomc': 'FOMC', 'cal_auction': '国债拍卖', 'cal_earn': '已发财报',
-        'cal_proj': '，带经济预测', 'cal_to': ' 至 ', 'cal_note': '云厂和芯片公司的财报日期不在数据里，发布后会出现在“已发财报”。',
-        'cal_decision': {'raise': '加息', 'lower': '降息', 'maintain': '维持'},
-        'fresh_head': ('序列', '最新数据', '最近抓取'), 'event': '事件：',
-        'foot': ['先按主题分别分析，再汇总成远、中、近三个期限，最后给出总结论。分析里的每个数字都核对过来源。',
-                 '框架参考了一位宏观交易者的公开观点，文中的“作者”就是指这位交易者。仅供个人研究，不构成投资建议。'],
-        'sparks': {'hy_oas': '高收益利差（%）', 'ig_oas': '投资级利差（%）', 'ust10y': '10 年期收益率（%）',
-                   'ust2s10s': '2s10s（%）', 'tga': 'TGA（百万美元）', 'on_rrp': '逆回购（十亿美元）',
-                   'vix': 'VIX', 'spx': '标普 500', 'tsmc_rev': '台积电月营收（新台币）'},
-        'since': '起', 'range': '区间',
-        'font': '"IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif',
-        'lh': '1.7',
-        'font_link': 'family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600',
-        'hist_head': '信号', 'stale': '可能过期',
-        'series': {'cftc_net': 'CFTC 杠杆基金股指期货净头寸', 'csp_capex': '云厂资本开支', 'csp_ocf': '云厂经营现金流',
-                   'fed_assets': '联储总资产', 'gex': '做市商净 GEX', 'gex_flip': 'gamma 翻转点', 'gex_spot': '期权链标的价格',
-                   'hy_oas': '高收益债利差', 'ig_oas': '投资级债利差', 'on_rrp': '隔夜逆回购', 'tga': '财政部 TGA 账户',
-                   'tlt_iv30': 'TLT 30 日隐含波动', 'tsmc_rev': '台积电月营收', 'tw_ai_chain_rev': '台湾 AI 服务器链月营收',
-                   'ust10y': '10 年期美债收益率', 'ust2s10s': '2 年与 10 年期利差', 'vix': 'VIX', 'spx': '标普 500',
-                   'earnings': '财报公告', 'auction': '国债拍卖结果', 'fomc': 'FOMC 会议', 'auction_upcoming': '即将进行的拍卖'},
-        'html_lang': 'zh-CN',
-    },
-    'en': {
-        'title': 'Far-Layer Weekly {rid}', 'eyebrow': 'Semiconductor far-layer weekly', 'asof': 'Data to {asof} · built {today}',
-        'state': {'slack': 'Not binding', 'watch': 'Near', 'binding': 'Binding', 'na': 'No data'},
-        'hz': {'far': ('Far', '6 months and beyond', 'Does the direction still hold?'),
-               'mid': ('Mid', '2 weeks to one earnings cycle', 'How big, and hedged or not?'),
-               'near': ('Near', 'Under 2 weeks', 'Is now a good time to act?')},
-        'nav': {'synthesis': 'Synthesis', 'horizons': 'Horizons', 'history': 'History', 'channels': 'Channels',
-                'calendar': 'Calendar', 'data': 'Data'},
-        'sec': {'synthesis': 'Synthesis', 'invariants': 'Invariant check', 'horizons': 'Far, mid, near',
-                'history': '15 signals, past 27 weeks', 'channels': 'Channels', 'calendar': 'Calendar', 'data': 'Data status'},
-        'no_l3': 'Level 3 has not been written yet. See the horizons below; if level 2 is missing too, they group the '
-                 'channels\' horizon notes.',
-        'no_l2': 'Level 2 has not been written yet; these are the channels\' horizon notes',
-        'no_hz': 'No channel covers this horizon', 'no_log': 'No log this issue', 'low_weight': 'low weight',
-        'full_synth': 'Full synthesis log: roles, exception checks, all deviations', 'full_hz': 'Full horizon log',
-        'full_ch': 'Full log: evidence, horizon implications, explainer',
-        'history_cap': 'One cell per week, grouped by channel. Hover for the value; this week has a heavy outline.',
-        'backfill_note': 'Before {first}: backfilled with the current data vintage, filtered by release date; revisions cannot be restored',
-        'chains': {'CH-A': 'C2 rate vol → C1 credit → funding → C5', 'CH-B': 'C1 credit → cloud capex → C5',
-                   'CH-C': 'C4 vol shock → forced selling → deleveraging', 'CH-D': 'C7 policy shock → C2 long end → C1 credit'},
-        'chains_cap': 'Transmission chains',
-        'cal_head': ('Date', 'Type', 'Detail'), 'cal_fomc': 'FOMC', 'cal_auction': 'Treasury auction',
-        'cal_earn': 'Results filed', 'cal_proj': ', with projections', 'cal_to': ' to ',
-        'cal_note': 'Cloud and chip earnings dates are not in the data; releases appear under "Results filed" once out.',
-        'cal_decision': {'raise': 'hike', 'lower': 'cut', 'maintain': 'hold'},
-        'fresh_head': ('Series', 'Latest data', 'Last fetched'), 'event': 'event: ',
-        'foot': ['Each topic is analyzed on its own, then combined into far, mid and near horizons, then into one '
-                 'conclusion. Every number in the notes is checked against its source.',
-                 'The framework draws on a macro trader’s public commentary; "the author" in the notes means that '
-                 'trader. Personal research, not investment advice.'],
-        'sparks': {'hy_oas': 'High-yield spread (%)', 'ig_oas': 'IG spread (%)', 'ust10y': '10-year yield (%)',
-                   'ust2s10s': '2s10s (%)', 'tga': 'TGA ($mn)', 'on_rrp': 'Reverse repo ($bn)', 'vix': 'VIX',
-                   'spx': 'S&P 500', 'tsmc_rev': 'TSMC monthly revenue (TWD)'},
-        'since': 'from', 'range': 'range',
-        'font': '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif',
-        'lh': '1.5',
-        'font_link': 'family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500',
-        'hist_head': 'Signal', 'stale': 'May be stale',
-        'series': {'cftc_net': 'CFTC leveraged-fund index futures, net', 'csp_capex': 'Cloud capex',
-                   'csp_ocf': 'Cloud operating cash flow', 'fed_assets': 'Fed total assets', 'gex': 'Dealer net GEX',
-                   'gex_flip': 'Gamma flip level', 'gex_spot': 'Option-chain spot', 'hy_oas': 'High-yield spread',
-                   'ig_oas': 'Investment-grade spread', 'on_rrp': 'Overnight reverse repo', 'tga': 'Treasury General Account',
-                   'tlt_iv30': 'TLT 30-day implied vol', 'tsmc_rev': 'TSMC monthly revenue',
-                   'tw_ai_chain_rev': 'Taiwan AI-server chain revenue', 'ust10y': '10-year Treasury yield',
-                   'ust2s10s': '2s10s curve', 'vix': 'VIX', 'spx': 'S&P 500', 'earnings': 'Results releases',
-                   'auction': 'Treasury auction results', 'fomc': 'FOMC meetings', 'auction_upcoming': 'Upcoming auctions'},
-        'html_lang': 'en',
-    },
-}
 SPARKS = {'C1': [('hy_oas', ''), ('ig_oas', '')], 'C2': [('ust10y', ''), ('ust2s10s', '')],
           'C3': [('tga', ''), ('on_rrp', '')], 'C4': [('vix', ''), ('spx', '')], 'C5': [('tsmc_rev', '2330')]}
 
@@ -275,29 +185,34 @@ footer { font-size: 12px; line-height: 1.5; color: var(--text-secondary); displa
 """
 
 def _t():
-    return T[lang()]
+    """The page's strings in the report language (playbook/<lang>/locale.yaml, ui)."""
+    return locale()['ui']
 
 
-_GLOSSARY = {}
-# A citation that is only IDs in brackets, e.g. "（S-L3-03、INF-02）": the name next to it already says it
-_PAREN_IDS = re.compile(r'\s?[（(]\s*(?:见|see)?\s*(?:{id})(?:\s*(?:[、,，/;；]|和|及|与|and)\s*(?:{id}))*\s*[）)]'
-                        .format(id=ID_RE.pattern))
+_PAREN_IDS = {}
+
+
+def _paren_ids():
+    """A citation that is only IDs in brackets, e.g. "(S-L3-03, INF-02)": the name next to it already says it.
+    The words that may join the IDs ("see", "and") come from the language's locale."""
+    language = lang()
+    if language not in _PAREN_IDS:
+        words = '|'.join(map(re.escape, _t().get('citation_words', ['see', 'and'])))
+        _PAREN_IDS[language] = re.compile(
+            r'\s?[（(]\s*(?:{w})?\s*(?:{id})(?:\s*(?:[、,，/;；]|{w})\s*(?:{id}))*\s*[）)]'.format(w=words, id=ID_RE.pattern))
+    return _PAREN_IDS[language]
 
 
 def _label(i):
-    """Reader-facing name of a signal or rule ID (playbook/glossary.yaml); the ID itself if it has none."""
-    if not _GLOSSARY:
-        _GLOSSARY.update(glossary())
-    g = _GLOSSARY.get(i)
-    return g[lang()] if g else i
+    """Reader-facing name of a signal or rule ID (the language's glossary.yaml); the ID itself if it has none."""
+    return glossary().get(i, i)
 
 
 def _human(text):
     """Leftover internal IDs become their names, with the ID in a tooltip. Works on escaped HTML or Markdown."""
     def name(m):
-        sep = '、' if lang() == 'zh' else ' and '
-        return f'<abbr title="{m.group(0)}">{sep.join(_label(i) for i in expand_id(m.group(0)))}</abbr>'
-    return ID_RE.sub(name, _PAREN_IDS.sub('', text))
+        return f'<abbr title="{m.group(0)}">{_t()["list_and"].join(_label(i) for i in expand_id(m.group(0)))}</abbr>'
+    return ID_RE.sub(name, _paren_ids().sub('', text))
 
 
 def _h(text):
@@ -312,7 +227,6 @@ _SHAPES = {
     'bad': ('<path d="M8 .8 15.2 8 8 15.2.8 8z" class="f"/>', '<path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" class="k"/>'),
     'na': ('<circle cx="8" cy="8" r="6.2" class="o"/>', '<path d="M5.4 8h5.2" class="o"/>'),
 }
-INV_CLASS = {'稳': 'ok', 'Stable': 'ok', '受压': 'warn', 'Under pressure': 'warn', '动摇': 'bad', 'Shaken': 'bad'}
 
 
 def _icon(cls, size=16, mark=True):
@@ -363,7 +277,8 @@ def _spark(con, series_id, entity, label, asof):
 def _log_body(text):
     text = re.sub(r'```json.*?```', '', text, flags=re.S)
     text = re.sub(r'^# .*\n', '', text, count=1)
-    text = re.sub(r'^\*\*(状态|一句话|动作含义|State|One line|Action)\*\*\s*[:：].*\n', '', text, flags=re.M)
+    heads = '|'.join(map(re.escape, _t()['log_heads']))
+    text = re.sub(rf'^\*\*({heads})\*\*\s*[:：].*\n', '', text, flags=re.M)
     out = markdown.markdown(_human(text), extensions=['tables'])
     return out.replace('<table>', '<div class="scroll"><table>').replace('</table>', '</table></div>')
 
@@ -418,7 +333,7 @@ def _synthesis(judg, run_dir):
         state, why = _split(v)
         inv = k.split(':', 1)[1]
         tiles.append(f'<div class="box"><span class="inv-name" title="{inv}">{html.escape(_label(inv))}</span>'
-                     f'{_tag(INV_CLASS.get(state, "na"), state)}<p class="small">{_h(why)}</p></div>')
+                     f'{_tag(t["invariant_states"].get(state, "na"), state)}<p class="small">{_h(why)}</p></div>')
     log = run_dir / 'synthesis.md'
     body = _log_body(log.read_text(encoding='utf-8')) if log.exists() else ''
     return (f'<div class="sec-head"><h2>{t["sec"]["invariants"]}</h2></div><div class="group inv">{"".join(tiles)}</div>'
@@ -439,7 +354,7 @@ def _horizons(judg, run_dir, defs):
                     continue
                 status, why = _split(v)
                 ch = k.split(':', 1)[1]
-                cls = 'warn' if re.search(r'传导中|Transmitting', status) else 'na'
+                cls = 'warn' if t['transmitting'] in status else 'na'
                 chains.append(f'<li title="{ch}">{_tag(cls, status)}'
                               f'<span><strong>{html.escape(_label(ch))}</strong> {_h(why)}</span></li>')
             log = run_dir / f'{h}.md'
@@ -454,8 +369,7 @@ def _horizons(judg, run_dir, defs):
                       for c, v in items) or f'<li class="muted">{t["no_hz"]}</li>'
         cols.append(f'<div class="box" id="hz-{h}"><div class="card-head"><h3>{name} · {sub}</h3></div>'
                     f'<p class="q">{t["no_l2"]}</p><ul class="plain">{lis}</ul></div>')
-    sep = '；' if lang() == 'zh' else '; '
-    colon = '：' if lang() == 'zh' else ': '
+    sep, colon = t['list_sep'], t['colon']
     chains_cap = sep.join(f'{_label(k)}{colon}{v}' for k, v in t['chains'].items())
     return f'<div class="group">{"".join(cols)}</div><p class="caption">{t["chains_cap"]}{colon}{chains_cap}</p>'
 
@@ -484,7 +398,7 @@ def _history(con, rid, defs):
                 st, v, m = cells.get((r, sid), ('na', None, ''))
                 cls = STATE_CLASS.get(st, 'na')
                 val = '' if v is None else f' · {v:,.2f}'
-                tag = ' (backfill)' if m == 'backfill' and lang() == 'en' else '（回补）' if m == 'backfill' else ''
+                tag = t['backfill_tag'] if m == 'backfill' else ''
                 label = t['state'].get(st, st)
                 row.append(f'<td class="s-{cls}{" now" if r == rid else ""}" title="{r} {html.escape(_label(sid))}: '
                            f'{label}{val}{tag}">{_icon(cls, 12, mark=False)}<span class="vh">{r} {label}</span></td>')

@@ -6,3 +6,5 @@ reports/
 private/
 __pycache__/
 *.pyc
+video/node_modules/
+video/out/

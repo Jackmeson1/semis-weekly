@@ -1,0 +1,52 @@
+# Reader-facing names for internal IDs. Logs and the page use these names; the IDs stay in json blocks
+# (signal_refs, rule_refs) and tooltips. `semis check` rejects a log that writes an ID where a reader sees it.
+S-L3-01: high-yield spread
+S-L3-02: investment-grade spread
+S-L3-03: cloud capex as a share of operating cash flow
+S-L1-01: 10-year Treasury weekly move
+S-L1-02: Treasury volatility
+S-L1-03: yield curve (2-year to 10-year)
+S-L2-01: Treasury auction demand
+S-L2-02: Fed net liquidity
+S-L4-01: volatility too low (fragile market)
+S-L4-02: volatility shock
+S-L4-03: dealer gamma (GEX)
+S-L4-04: leveraged-fund index futures positioning
+S-L5-01: TSMC monthly revenue growth
+S-L5-02: Taiwan AI-server chain revenue growth
+S-L5-03: cloud capex growth
+HZ-01: under two weeks
+HZ-02: within three months
+HZ-03: over one earnings cycle
+HZ-04: beyond six months
+HZ-05: the Fed's rate-cut path ranks last
+VETO-01: a funding break can veto the direction
+VETO-02: rates rising too fast can veto for a few weeks
+VETO-03: extreme positioning changes only the timing
+VETO-04: a policy shock can veto until it expires
+NOVETO-01: the level of long rates is not a veto
+NOVETO-02: the rate-cut path is not a veto
+NOVETO-03: bubble and crash talk is ignored
+NOVETO-04: minor industry delays are not a veto
+INF-01: rate speed against AI demand is decided by speed
+INF-02: the more capex relies on outside funding
+INF-03: positioning changes timing
+ACT-01: the far horizon sets size and hedges
+ACT-02: after a positioning flush
+CAL-01: a policy veto needs an expiry date
+CAL-02: strong industry data does not override funding conditions
+CAL-03: liquidity shocks are easy to underrate
+CAL-04: thresholds are recalibrated as the rate regime changes
+INV-01: AI demand does not peak
+INV-02: Treasury supply weighs on the long end
+INV-03: chip shortages follow capacity
+INV-04: funding is the final constraint
+CH-A: rate volatility into credit and cloud funding
+CH-B: credit into cloud capex
+CH-C: a volatility shock forcing systematic selling
+CH-D: a policy shock into the long end and credit
+SW-m-01: volatility falls and longs return
+SW-m-02: bonds first
+SW-m-03: once gamma recovers
+SW-m-04: strong results trading below the pre-earnings price
+SW-m-05: once rate volatility calms

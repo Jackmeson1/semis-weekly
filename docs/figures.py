@@ -1,6 +1,6 @@
-"""Diagrams for the READMEs: python docs/figures.py -> docs/img/<name>.<lang>.svg
+"""Diagrams for the README: python docs/figures.py -> docs/img/<name>.svg
 
-Each figure is drawn once and labeled in both languages. Colors are the page's IBM Carbon tokens and follow the
+Labels live in L, keyed by language, so a translation is one more entry. Colors are the page's IBM Carbon tokens and follow the
 reader's color scheme; fonts are system fonts because GitHub shows SVGs as images, which cannot load web fonts.
 """
 from pathlib import Path
@@ -62,55 +62,6 @@ def svg(w, h, label, body):
 # ---------- labels ----------
 
 L = {
-    'zh': {
-        'channels_label': '七个信道各自的数据来源，以及它们分别送往远、中、近哪个期限',
-        'channels': [('C1', '信用', 'FRED · SEC', '高收益和投资级债利差 · 云厂 capex 与经营现金流'),
-                     ('C2', '利率', 'FRED · 财政部', '10 年期收益率 · 收益率曲线 · 国债拍卖'),
-                     ('C3', '流动性管道', 'FRED', '联储资产 · 财政部 TGA 账户 · 逆回购'),
-                     ('C4', '市场仓位', 'Cboe · CFTC', 'VIX · 从期权链算的做市商 gamma · 期货持仓'),
-                     ('C5', '产业', '台湾月营收 · SEC', '台积电和 AI 服务器链月营收 · 云厂 capex 增速'),
-                     ('C6', '公司财报', 'SEC', '13 家公司的季报新闻稿'),
-                     ('C7', '政策与事件', '美联储 · 财政部', 'FOMC 声明 · 国债拍卖日程')],
-        'hz': [('远 · 半年以上', '方向还成立吗', '产业、AI 需求、融资依赖'),
-               ('中 · 一个财报季', '仓位开多大、要不要对冲', '信用、资金面、财报、政策'),
-               ('近 · 两周以内', '现在是进出的好时点吗', '市场仓位、利率速度')],
-
-        'rank_label': '三个期限各自的排序：近期市场仓位最要紧；中期信用、资金面、产业、AI 需求并列；远期产业、AI 需求、美债供给并列；降息路径都排最后',
-        'rank_heads': ['近 · 两周以内', '中 · 一个财报季', '远 · 半年以上'], 'rank_sub': '谁说了算（条越长越要紧）',
-        'rank': [[('市场仓位', 270, 'acc'), ('利率速度、信用等', 150, 'n'), ('公司、政策', 120, 'dim')],
-                 [('信用', 250, 'acc'), ('资金面', 250, 'acc'), ('产业景气', 250, 'acc'), ('AI 需求', 250, 'acc'),
-                  ('公司财报', 130, 'dim'), ('宏观政策', 110, 'dim')],
-                 [('产业', 270, 'acc'), ('AI 需求', 270, 'acc'), ('美债供给', 270, 'acc'), ('公司、政策', 120, 'dim')]],
-        'rank_foot': '每个期限都排最后：联储的降息路径',
-
-        'veto_label': '四种能推翻方向的情况与各自时长，以及四种推不翻方向的理由',
-        'veto_heads': ('能推翻方向的', '推不翻方向的'),
-        'vetoes': [('融资断裂', '信用收紧，且云厂花的钱超过赚的钱', '改变方向', 'c-bad'),
-                   ('利率涨得太快', '看速度，不看水平', '否决几周', 'c-warn'),
-                   ('仓位极端', '做市商 gamma 为负、波动冲击', '只改进出时点', 'c-warn'),
-                   ('政策冲击', '关税、出口管制这类', '到期前有效', 'c-warn')],
-        'center': ('半导体的方向', '前提：AI 需求不会到顶'),
-        'noveto': [('长端利率的水平', '扎实的资产不怕利率高，只怕涨得快'), ('降息路径', '在每个期限都排最后'),
-                   ('泡沫论、崩盘论', '直接忽略'), ('产业里的小延期', '只是时间问题，盯住需求就够了')],
-
-        'chain_label': '四条传导链；2026-W44 第二条信用到云厂资本开支处在传导中，其余未见',
-        'chains': [['利率波动', '信用', '云厂融资', '产业'], ['信用', '云厂资本开支', '产业'],
-                   ['波动冲击', '被动卖出', '去杠杆'], ['政策冲击', '长端利率', '信用']],
-        'chain_b_states': ['接近', '接近 · 0.85', '还没动'],
-        'not_seen': '未见', 'transmitting': '传导中',
-
-        'action_label': '2026-W44：远期方向成立，中期不加杠杆，近期先不加仓，合成为维持，加一点对冲',
-        'roles': [('远期定方向', '没收紧', '方向成立', 112), ('中期定仓位和对冲', '接近', '维持仓位，不加杠杆', 100),
-                  ('近期定时点', '收紧', '先不加仓', 100)],
-        'action': ('维持，加一点对冲', '2026-W44 的动作'),
-
-        'pipe_label': '流水线：免费数据、15 个指标、7 份信道日志、远中近三份期限日志、综合、网页；三级判断后面都有数字核对，不通过就退回',
-        'pipe_edges': ['入库', '输入包', '只读下一级', '只读下一级', '渲染'],
-        'pipe': [(None, '免费数据', '7 个来源，每天抓'), (None, '15 个指标', '代码算，可复查'),
-                 ('第 1 级', '7 份信道日志', '一个 AI 只看一个信道'), ('第 2 级', '远、中、近', '三份期限日志'),
-                 ('第 3 级', '综合', '一个动作'), (None, '网页', '每周一期')],
-        'gate': '数字核对：每个数字都要有出处，正文不能有内部编号', 'gate_fail': '不通过就退回',
-    },
     'en': {
         'channels_label': 'The seven channels, their data sources, and which horizon each one feeds',
         'channels': [('C1', 'Credit', 'FRED · SEC', 'HY and IG spreads · cloud capex vs cash flow'),
@@ -280,6 +231,5 @@ FIGURES = {'channels': channels, 'horizons': ranking, 'vetoes': vetoes, 'chains'
 if __name__ == '__main__':
     OUT.mkdir(exist_ok=True)
     for name, draw in FIGURES.items():
-        for lang, labels in L.items():
-            (OUT / f'{name}.{lang}.svg').write_text(draw(labels), encoding='utf-8')
-            print(f'docs/img/{name}.{lang}.svg')
+        (OUT / f'{name}.svg').write_text(draw(L['en']), encoding='utf-8')
+        print(f'docs/img/{name}.svg')
