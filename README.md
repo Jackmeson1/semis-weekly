@@ -124,3 +124,7 @@ tests/        regression tests
 ```
 
 Not in the repository: `.env`, `data/` (database and raw archive), `logs/`, `reports/`.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Not investment advice.

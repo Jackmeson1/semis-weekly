@@ -107,3 +107,7 @@ tests/        回归测试
 ```
 
 不在仓库里：`.env`、`data/`（数据库和原始存档）、`logs/`、`reports/`。
+
+## 许可证
+
+MIT，见 [LICENSE](LICENSE)。不构成投资建议。
