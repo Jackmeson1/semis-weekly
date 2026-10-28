@@ -7,18 +7,31 @@ positioning and policy.
 
 [中文说明](README.zh.md)
 
-## Why
+## What is missing
 
-Earnings and industry news are everywhere. But chip stocks often move for other reasons: rates jump, borrowing
-gets more expensive, or too many investors are crowded into the same trade. These forces sit further from the
-companies, and few people track them every week.
+Chip stocks often move for reasons other than earnings: rates jump, borrowing gets more expensive, or too many
+investors are crowded into the same trade. Most of what you can find does not help with that:
 
-Once a week this project pulls free public data, computes 15 indicators, and has AI write a one-page web report
-by fixed rules. Each report answers three questions:
+- **Free information is almost all about earnings and the industry.** Data on rates, credit, liquidity and
+  positioning sits in paid terminals or is scattered across commentary.
+- **Commentary gives conclusions, not tradeoffs.** When rising rates and strong AI demand show up together,
+  which one wins? Why is the answer different at two weeks and at six months? Few people say.
+- **Dashboards just lay the data out.** Dozens of charts side by side, with no word on which one matters this
+  week.
+- **AI-written market summaries are dense and hard to read.** And their numbers are not always traceable.
 
-- Which of these forces are tightening this week, and which are not?
-- What does that mean for the next two weeks, the next earnings season, and six months out?
-- Should you add, hold, trim, or hedge?
+## What this project adds
+
+- **Free data only, with stand-ins for paid data.** Dealer gamma (which way options dealers must hedge) is
+  usually a paid feed; here it is computed from Cboe's public delayed option data. Single-company credit
+  insurance prices are out of reach, so market-wide credit spreads stand in.
+- **Tradeoffs written down as rules.** Which factor decides at each horizon, what can overturn the direction
+  and what cannot: all of it is in the rulebook in `playbook/`, where each rule can be checked and changed.
+- **One call each week.** Which forces are tightening, what that means for the next two weeks, the next
+  earnings season and six months out, and whether to add, hold, trim or hedge.
+- **Written for people, and checkable.** The analysis is written in layers, every number must appear in the
+  source data, and the text carries no internal codes.
+- **Something to learn from.** Every topic explains one concept with this week's real numbers.
 
 ## The idea
 
@@ -32,8 +45,6 @@ Which brake matters most depends on how far ahead you look:
 - **One earnings season**: market liquidity, the industry cycle and AI demand.
 - **Six months and more**: the industry and AI demand themselves. Only a real break in funding changes the
   direction.
-
-The framework draws on a macro trader's public commentary, organized into a rulebook in `playbook/`.
 
 ## What a report contains
 
@@ -130,6 +141,10 @@ tests/        regression tests
 ```
 
 Not in the repository: `.env`, `data/` (database and raw archive), `logs/`, `reports/`.
+
+## Acknowledgments
+
+The framework draws on a macro trader's public commentary.
 
 ## License
 
