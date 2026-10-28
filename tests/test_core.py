@@ -112,6 +112,19 @@ class ForeignFilerResults(unittest.TestCase):
         self.assertFalse(fetch._looks_like_results('TSMC September 2026 Revenue Report'))
         self.assertFalse(fetch._looks_like_results('Board approved capital appropriations; Q3 dividend'))
 
+    def test_clip_keeps_cash_flow_rows_past_the_cut(self):
+        # Alphabet's Q3 2026 release: the capex row comes after 15000 characters of text
+        head = 'Alphabet Announces Third Quarter 2026 Results\n' + 'x' * 100
+        tail = '\nInventory (526) (3,220)\nPurchases of property and equipment (23,953) (41,200)\nOther 1 2'
+        got = fetch._clip(head + tail, limit=len(head))
+        self.assertTrue(got.startswith(head))
+        self.assertIn('Purchases of property and equipment (23,953) (41,200)', got)
+        self.assertNotIn('Inventory', got)
+        self.assertEqual(fetch._clip('short'), 'short')
+        # Microsoft's release puts each table cell on its own line
+        cells = '\nInvesting \nAdditions to property and equipment \n(39,367) \n(19,394) \nOther, net'
+        self.assertIn('Additions to property and equipment (39,367) (19,394)', fetch._clip(head + cells, limit=len(head)))
+
 
 class MonthMath(unittest.TestCase):
     def test_rolling_yoy_across_year_boundary(self):
@@ -156,6 +169,11 @@ class NumberCheck(unittest.TestCase):
         pool = []
         _numbers_in('raise by 1/4 percentage point to 3-3/4 to 4 percent', pool)
         self.assertEqual(self.check('a 25bp hike to 3.75% to 4%', pool), [])
+
+    def test_rounding_half_up(self):
+        # Meta's year-ago free cash flow, 10,625 million, is 106.25 in hundred-million units
+        self.assertEqual(self.check('106.3 or 106.2 or 106', [10625000000]), [])
+        self.assertEqual(self.check('106.4', [10625000000]), ['106.4'])
 
     def test_json_block_ignored(self):
         self.assertEqual(self.check('text 28\n```json\n{"x": 999}\n```', [28]), [])

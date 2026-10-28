@@ -288,6 +288,26 @@ def _looks_like_results(text):
     return bool(_QUARTER.search(head) and _RESULTS.search(head))
 
 
+# Cash-flow rows sit at the end of a long release, past the cut (Alphabet's capex line does)
+_KEY_LINES = re.compile(r'purchases? of property|additions to property|capital expenditure|free cash flow|'
+                        r'net cash (provided by|from) operati', re.I)
+TEXT_LIMIT = 15000
+
+
+def _clip(text, limit=TEXT_LIMIT):
+    """The first `limit` characters, plus any later line that states capex or operating cash flow."""
+    if len(text) <= limit:
+        return text
+    lines = text[limit:].split('\n')
+    extra = []
+    for i, line in enumerate(lines):
+        if _KEY_LINES.search(line):
+            # Microsoft's tables put each cell on its own line: take the two numbers that follow
+            row = line if re.search(r'\d', line) else ' '.join(lines[i:i + 3])
+            extra.append(re.sub(r'\s+', ' ', row).strip()[:300])
+    return text[:limit] + ('\n[...]\n' + '\n'.join(extra[:12]) if extra else '')
+
+
 def sec_earnings(con, s, src, since):
     """Recent results releases: 8-K Item 2.02 with its EX-99.1, or a 6-K whose exhibit is a quarterly release."""
     out = {}
@@ -318,14 +338,14 @@ def sec_earnings(con, s, src, since):
                           next((x for x in names if re.search(r'ex(hibit)?[-_.]?99', x, re.I) and x.endswith('.htm')), None))
                 if ex:
                     f3, _, doc, e3 = http.get(con, 'sec_submissions', s['id'], f'{base}/{ex}', entity=ticker, ext='htm')
-                    text = _html_text(doc.decode('utf-8', 'replace'))[:15000] if doc else ''
+                    text = _clip(_html_text(doc.decode('utf-8', 'replace'))) if doc else ''
             else:
                 # 6-K has no item codes: keep it only if an exhibit reads like a quarterly results release
                 for name in _6k_candidates(names, rec['primaryDocument'][i])[:4]:
                     f3, _, doc, e3 = http.get(con, 'sec_submissions', s['id'], f'{base}/{name}', entity=ticker, ext='htm')
                     t = _html_text(doc.decode('utf-8', 'replace')) if doc else ''
                     if _looks_like_results(t):
-                        ex, text = name, t[:15000]
+                        ex, text = name, _clip(t)
                         break
                 if not ex:
                     continue

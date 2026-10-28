@@ -93,7 +93,8 @@ def _channel_events(con, c, rid):
     if c == 'C6':
         return {'earnings_last_21d': _events(con, 'earnings', today - dt.timedelta(days=21), today),
                 'note': 'Results releases: 8-K Item 2.02 (text is the EX-99.1 press release) and 6-K results exhibits for '
-                        'TSM (NT$) and ASML (EUR); first 15000 characters. Keep each company in its own currency.'}
+                        'TSM (NT$) and ASML (EUR); first 15000 characters, then after "[...]" any later lines that state '
+                        'capex or operating cash flow. Keep each company in its own currency.'}
     if c == 'C7':
         notes = ROOT / 'logs' / rid / 'inputs' / 'notes.md'
         return {'fomc': _events(con, 'fomc', today - dt.timedelta(days=60), today + dt.timedelta(days=60)),
@@ -203,7 +204,8 @@ def _unmatched(log, pool):
     out = []
     for m in re.finditer(r'(?<![\w.])-?\d+(?:\.(\d+))?', text):
         n, dec = float(m.group(0)), len(m.group(1) or '')
-        if not any(abs(round(x, dec) - n) < 1e-9 for x in pool):
+        # Within half a unit of the last digit: 106.25 may be written 106.3 (round() gives 106.2)
+        if not any(abs(x - n) <= 0.5 * 10 ** -dec + 1e-9 for x in pool):
             out.append(m.group(0))
     return out
 
