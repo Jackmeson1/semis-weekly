@@ -1,5 +1,7 @@
 # semis-weekly
 
+[![tests](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml/badge.svg)](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml)
+
 A weekly "far-layer" report for semiconductor investing. Earnings and industry data are easy to find; this
 system covers the layers further out — credit, rates, liquidity plumbing, positioning and policy — and decides,
 week by week, which of them is actually binding.

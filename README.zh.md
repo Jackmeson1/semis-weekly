@@ -1,5 +1,7 @@
 # semis-weekly
 
+[![tests](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml/badge.svg)](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml)
+
 每周一期的半导体“远端”周报。财报和产业数据很容易找；这套系统补的是更远的几层：信用、利率、流动性管道、仓位和政策，并且每周判断其中哪一层真的在收紧。
 
 [English](README.md)
