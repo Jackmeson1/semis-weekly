@@ -2,63 +2,64 @@
 
 [![tests](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml/badge.svg)](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml)
 
-A weekly "far-layer" report for semiconductor investing. Earnings and industry data are easy to find; this
-system covers the layers further out — credit, rates, liquidity plumbing, positioning and policy — and decides,
-week by week, which of them is actually binding.
+A weekly report for semiconductor investors that looks past earnings: interest rates, credit, market liquidity,
+positioning and policy.
 
 [中文说明](README.zh.md)
 
-The judgment rules are distilled from three years of public posts by a macro trader on X (who is not
-identified here). The core idea taken from them: the far layers are **constraints**, the near layers are the
-**objective**. When the constraints are slack, earnings and the industry decide direction; when a constraint
-binds, it vetoes, and which layer gets the final say depends on the horizon.
+## Why
+
+Earnings and industry news are everywhere. But chip stocks often move for other reasons: rates jump, borrowing
+gets more expensive, or too many investors are crowded into the same trade. These forces sit further from the
+companies, and few people track them every week.
+
+Once a week this project pulls free public data, computes 15 indicators, and has AI write a one-page web report
+by fixed rules. Each report answers three questions:
+
+- Which of these forces are tightening this week, and which are not?
+- What does that mean for the next two weeks, the next earnings season, and six months out?
+- Should you add, hold, trim, or hedge?
+
+## The idea
+
+Think of macro as the brakes and earnings as the accelerator. While the brakes are off, earnings and the
+industry are enough. Once the brakes are on, they decide.
+
+Which brake matters most depends on how far ahead you look:
+
+- **Under two weeks**: positioning. When options dealers are chasing the market and amplifying moves, good
+  companies fall with everything else.
+- **One earnings season**: market liquidity, the industry cycle and AI demand.
+- **Six months and more**: the industry and AI demand themselves. Only a real break in funding changes the
+  direction.
+
+The framework draws on a macro trader's public commentary, organized into a rulebook in `playbook/`.
+
+## What a report contains
+
+- A one-line conclusion and action at the top, such as "hold, add a small hedge."
+- A view for each horizon (far, mid, near) and whether they conflict.
+- The weekly state of all 15 indicators over the past six months: not binding, near, or binding.
+- One card per topic: credit, rates, liquidity, positioning, industry, company results, policy. Each card
+  explains one concept with this week's real numbers, so you can learn macro as you read.
+- Upcoming Fed meetings and Treasury auctions, and when each data series was last updated.
 
 ## How it works
 
-```
-sources/registry.yaml       22 series and event feeds, every endpoint tested
-   ↓ fetch (raw responses archived; option chains gzipped)
-schema/schema.sql           DuckDB: raw_fetch → observations (point-in-time) → events
-   ↓ code computes 15 signals from signals/signals.yaml
-signals, signal_history     value and state (slack / watch / binding / na) per signal per week
-   ↓ level 1: one model per channel, reading only that channel (playbook/<lang>/channels/)
-logs/<week>/C1…C7           7 channel logs: evidence, horizon implications, an explainer
-   ↓ level 2: far / mid / near (playbook/<lang>/aggregation.md), including a transmission-chain check
-logs/<week>/near, mid, far
-   ↓ level 3: synthesis (aggregation.md + invariants.md)
-logs/<week>/synthesis.md
-   ↓ render
-reports/<week>.html         the weekly page
-   ↓ 4–8 weeks later
-calibration                 record what held and which thresholds should move
-```
+1. **Fetch.** Every source is free, and most are official: the Fed's FRED database, SEC filings, the US
+   Treasury, the CFTC, Cboe option data, and Taiwan companies' monthly revenue.
+2. **Compute.** Code computes the indicators, so results can be checked. History uses only data that had been
+   published at the time, so it never peeks at the future.
+3. **Write by topic.** One AI model writes each topic and sees only that topic's data. Their notes are combined
+   into far, mid and near horizons, then into one conclusion. Writing in layers means a mistake can be traced
+   to one step, and that step alone can be redone.
+4. **Check the numbers.** Every number in the notes must appear in the source data, or the note is rejected.
+   Internal codes are not allowed either; notes use plain names.
+5. **Build the page.** The page follows IBM's Carbon design system, works on phones and in dark mode, and
+   shows every state with a color and a shape.
 
-- **Code computes, models judge.** Fetching, cleaning and signals are deterministic and reproducible. Models
-  only read the results, decide, and write logs.
-- **Each level reads only the level below.** If one level is wrong you can trace it and rerun just that level
-  and the ones above it. A single channel can be rerun on its own.
-- **Every number has a source.** `semis check` verifies that each number in a log appears in its input packet
-  (or the logs one level down), allowing for rounding and unit conversions. `ingest` refuses logs that fail.
-- **Written for a reader, not a checker.** Logs follow `playbook/<lang>/style.md`: conclusion first, one claim
-  per sentence, terms explained where they first appear. Signal and rule IDs stay in the json for tracing; the
-  text uses the names in `playbook/glossary.yaml`, and `check` rejects IDs anywhere the page shows them.
-- **Point-in-time.** Observations keep their first-seen and release times; backfilled signals never see a
-  quarterly or monthly report that was published later.
-
-## Channels
-
-| Channel | Data | Signals |
-|---|---|---|
-| C1 Credit | FRED ICE BofA spreads; SEC cloud capex and operating cash flow | S-L3-01/02/03 |
-| C2 Rates | FRED yields and curve; TreasuryDirect auctions | S-L1-01/02/03, S-L2-01 |
-| C3 Liquidity plumbing (low weight) | FRED Fed assets, TGA, reverse repo | S-L2-02 |
-| C4 Positioning | Cboe VIX; GEX computed from Cboe option chains (SPY, QQQ, SMH); CFTC TFF | S-L4-01/02/03/04 |
-| C5 Industry | FinMind monthly revenue for TSMC and the Taiwan AI-server chain; SEC cloud capex | S-L5-01/02/03 |
-| C6 Company results | SEC 8-K Item 2.02 and the EX-99.1 press release (11 US companies); 6-K results releases (TSMC, ASML) | model reads the release |
-| C7 Policy and events | FOMC calendar and statements (fetched after each meeting); upcoming auctions; optional user notes | model reads statements and calendar |
-
-TLT 30-day implied vol is archived daily but not yet a signal; it becomes a C2 proxy for swaption vol once
-there is enough history.
+The writing guide is `playbook/en/style.md`: conclusion first, one claim per sentence, terms explained where
+they first appear.
 
 ## Quick start
 
@@ -69,63 +70,62 @@ uv venv --python 3.12 .venv
 uv pip install --python .venv/Scripts/python.exe -r requirements.txt   # .venv/bin/python on macOS/Linux
 cp .env.example .env        # set CONTACT_NAME and CONTACT_EMAIL (SEC requires them); SEMIS_LANG=en or zh
 P=.venv/Scripts/python.exe
-$P -m semis prepare         # fetch -> signals -> level-1 input packets for all channels
-$P -m semis backfill        # optional: 26 weeks of signal history
+$P -m semis prepare         # fetch data, compute indicators, prepare each topic's input
+$P -m semis backfill        # optional: compute the past 26 weeks
 $P -m unittest discover -s tests
 ```
 
 ## A weekly run
 
-The model steps are designed for Claude Code: `.claude/skills/weekly-report/SKILL.md` runs the whole flow
-when you say "run this week's report" (or "出本周报告"). By hand:
+The writing steps are designed for Claude Code: say "run this week's report" (or "出本周报告") and it follows
+`.claude/skills/weekly-report/SKILL.md` end to end. By hand:
 
 ```
 $P -m semis prepare
-$P -m semis prompt --run 2026-W44 --channel C1    # give this to one model per channel (C1..C7)
-$P -m semis check  --run 2026-W44
-$P -m semis ingest --run 2026-W44
-#   levels 2 and 3: write near/mid/far.md and synthesis.md following playbook/<lang>/aggregation.md
-$P -m semis check  --run 2026-W44
-$P -m semis ingest --run 2026-W44
-$P -m semis render --run 2026-W44                 # reports/2026-W44.html
-$P -m semis review                                 # judgments from 4–8 weeks ago awaiting an outcome
+$P -m semis prompt --run 2026-W44 --channel C1    # the task for one AI model; one per topic, C1 to C7
+$P -m semis check  --run 2026-W44                 # every number has a source, no internal codes
+$P -m semis ingest --run 2026-W44                 # record the conclusions
+#   then write far, mid, near and the conclusion per playbook/en/aggregation.md; check and ingest again
+$P -m semis render --run 2026-W44                 # build reports/2026-W44.html
+$P -m semis review                                 # calls from 4–8 weeks ago that are due for a look back
 $P -m semis calibrate --run 2026-W44 --item 2:near:state --outcome right --note "..."
 ```
 
-`--lang en|zh` (or `SEMIS_LANG` in `.env`) picks the playbook, prompts and page language. One issue is
-produced in one language.
+`--lang en|zh` (or `SEMIS_LANG` in `.env`) picks the language of the rulebook, the prompts and the page. One
+report is in one language.
 
 ## Data sources and terms
 
-All sources are free. Most are official (FRED, SEC EDGAR, TreasuryDirect, Federal Reserve, CFTC). Cboe
-delayed option chains and FinMind are public but their terms are marked `check` in the registry; they are
-fetched once a day for personal research. The SEC contact email is sent only to sec.gov; every other source
-gets an honest `python-requests` User-Agent (FRED drops requests that don't carry it).
+Every source is free. Cboe's delayed option data and FinMind are public, but their terms do not clearly allow
+automated fetching, so the registry marks them `check`; they are fetched once a day for personal research.
+
+The SEC asks for a contact email in each request; that email goes only to sec.gov. Every other source gets an
+honest `python-requests` user agent, which FRED requires.
 
 ## Known limitations
 
-- GEX depends on an assumption about which side dealers are on (customers sell calls and buy puts). Near the
-  flip, the sign can change. Contracts expiring on the data date are excluded.
-- No when-issued yields, so auction weakness is approximated with bid-to-cover and the 10-year move.
-- Swaption implied vol is not free; realized 10-year vol stands in for now.
-- ICE BofA spreads on FRED only go back 3 years, so percentiles have a short sample until local history builds up.
-- 6-K filings carry no item codes, so TSMC and ASML results are recognized by their exhibit text; a release
-  that does not mention a quarter and a results line in its opening would be missed.
-- Most thresholds are initial values marked "added"; the calibration log is how they get fixed.
-- Backfilled history uses the current data vintage; revisions cannot be restored. GEX has no history before the first snapshot.
-
-The page follows IBM Carbon (type scale, spacing, tokens, tiles, tags, data tables), with the UK Analysis
-Function chart guidance for sparklines. Every state pairs a color with a shape, so nothing relies on color alone.
+- **Dealer positioning is an estimate.** Option data does not say which side dealers are on, so we use the
+  common industry assumption. Near the tipping point, the conclusion can flip.
+- **Some data is out of reach, so proxies stand in.** There is no pre-issue trading data for Treasuries, so
+  auction strength uses the bid-to-cover ratio. Implied volatility on rate options costs money, so realized
+  volatility stands in.
+- **Credit spread history covers only 3 years.** Percentiles rest on a short sample until local history builds
+  up.
+- **TSMC and ASML results are recognized from their text.** Their 6-K filings carry no item codes, so a release
+  that does not mention the quarter and its results near the top would be missed.
+- **Most tripwires are our own starting values.** They are reviewed against outcomes every 4–8 weeks.
+- **Backfilled history uses today's data.** Later revisions cannot be undone, and option positioning has no
+  history before the first snapshot.
 
 ## Layout
 
 ```
-semis/        fetch, signals, render, CLI (python -m semis)
-sources/      registry.yaml
-signals/      signals.yaml (thresholds and change log)
-schema/       schema.sql
-playbook/     zh/ and en/: playbook, invariants, aggregation, style, channels/C1–C7; glossary.yaml
-prompts/      level-1 prompt templates (zh, en)
+semis/        fetch, indicators, page, command line (python -m semis)
+sources/      data registry (registry.yaml)
+signals/      indicator definitions and tripwires (signals.yaml), with a change log
+schema/       database schema (schema.sql)
+playbook/     the rulebook, zh/ and en/; glossary.yaml maps internal codes to plain names
+prompts/      task templates for the AI models (zh, en)
 tests/        regression tests
 ```
 

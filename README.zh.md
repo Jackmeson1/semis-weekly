@@ -2,52 +2,49 @@
 
 [![tests](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml/badge.svg)](https://github.com/Jackmeson1/semis-weekly/actions/workflows/tests.yml)
 
-每周一期的半导体“远端”周报。财报和产业数据很容易找；这套系统补的是更远的几层：信用、利率、流动性管道、仓位和政策，并且每周判断其中哪一层真的在收紧。
+每周一份的半导体投资周报，看的是财报以外的东西：利率、信用、资金面、市场仓位和政策。
 
 [English](README.md)
 
-判断规则提炼自一位在 X 上公开写作的宏观交易者三年的帖子（不公开其身份）。从中取的核心思路是：远端是**约束**，近端是**目标**。约束没收紧时，财报和产业决定方向；约束一收紧就会否决，而且谁说了算取决于期限。
+## 为什么做这个
 
-## 流程
+财报和行业新闻到处都有。但半导体股票的涨跌，很多时候不是因为财报，而是因为利率突然往上冲、公司借钱变贵，或者市场上大家的仓位太挤。这些因素离公司比较远，很少有人每周系统地跟踪。
 
-```
-sources/registry.yaml       22 个序列和事件源，接口都实测过
-   ↓ 抓取（原文件存档，期权链 gzip）
-schema/schema.sql           DuckDB：raw_fetch → observations（point-in-time）→ events
-   ↓ 代码按 signals/signals.yaml 算 15 个信号
-signals、signal_history     每周每个信号的值和状态（slack / watch / binding / na）
-   ↓ 第 1 级：每个信道一个模型，只读本信道（playbook/<语言>/channels/）
-logs/<周>/C1…C7             7 份信道日志：依据、期限含义、讲解
-   ↓ 第 2 级：远、中、近（playbook/<语言>/aggregation.md），含传导链检查
-logs/<周>/near、mid、far
-   ↓ 第 3 级：综合（aggregation.md + invariants.md）
-logs/<周>/synthesis.md
-   ↓ 渲染
-reports/<周>.html           当期网页
-   ↓ 4–8 周后
-calibration                 回头对照，调阈值
-```
+这个项目每周抓一次免费的公开数据，算出 15 个指标，再让 AI 按固定的规则写成一期网页周报。周报回答三个问题：
 
-- **代码算，模型判。** 抓取、清洗、算信号是确定的、可复查的；模型只读结果、做判断、写日志。
-- **每一级只读下一级。** 某一级出错能定位，只重跑那一级和它上面的级；单个信道也能单独重跑。
-- **每个数字都有出处。** `semis check` 检查日志里的每个数字都能在输入包（或下一级日志）里找到，允许四舍五入和单位换算；`ingest` 不通过就不登记。
-- **写给人读，不是写给校验器。** 日志按 `playbook/<语言>/style.md` 写：结论先行、一句一事、术语在第一次出现时解释。
-  信号和规则编号只留在 json 里供追溯，正文用 `playbook/glossary.yaml` 里的名字；网页上会显示的地方出现编号，`check` 不通过。
-- **按当时能看到的数据。** 观测值记录首次看到和发布时间；回补的历史信号不会用到当时还没发布的季报和月营收。
+- 这周哪些因素在收紧，哪些没有？
+- 对未来两周、一个财报季、半年以上，分别意味着什么？
+- 该加仓、维持、减仓，还是做对冲？
 
-## 信道
+## 核心思路
 
-| 信道 | 数据 | 信号 |
-|---|---|---|
-| C1 信用 | FRED ICE BofA 利差；SEC 云厂 capex 和经营现金流 | S-L3-01/02/03 |
-| C2 利率 | FRED 收益率和曲线；TreasuryDirect 拍卖 | S-L1-01/02/03、S-L2-01 |
-| C3 流动性管道（低权重） | FRED 联储资产、TGA、逆回购 | S-L2-02 |
-| C4 仓位 | Cboe VIX；Cboe 期权链自算 GEX（SPY、QQQ、SMH）；CFTC TFF | S-L4-01/02/03/04 |
-| C5 产业 | FinMind 台积电和台湾 AI 服务器链月营收；SEC 云厂 capex | S-L5-01/02/03 |
-| C6 公司与财报 | SEC 8-K Item 2.02 和 EX-99.1 新闻稿（11 家美国公司）；6-K 季报新闻稿（台积电、ASML） | 模型读新闻稿 |
-| C7 政策与事件 | FOMC 日程和会后声明（自动抓）；即将进行的拍卖；可选的用户笔记 | 模型读声明和日历 |
+把宏观因素当成刹车，把产业和财报当成油门。刹车没踩下去时，看财报和产业就够了；刹车一踩，它说了算。
 
-TLT 30 日隐含波动每天存档，暂不判定；攒够历史后作为 C2 的 swaption 波动代理。
+哪个刹车最要紧，取决于你看多远：
+
+- **两周以内**：市场仓位最要紧。比如期权做市商在追涨杀跌、放大波动时，好公司也会跟着跌。
+- **一个财报季**：看资金面、产业景气和 AI 需求。
+- **半年以上**：看产业和 AI 需求本身。只有融资真的断了，才会改变方向。
+
+这套框架参考了一位宏观交易者的公开观点，整理成了一份规则手册，放在 `playbook/` 里。
+
+## 一期周报里有什么
+
+- 开头一句话的结论和动作，比如“维持，加一点对冲”。
+- 远、中、近三个期限各自的判断，以及它们之间有没有冲突。
+- 15 个指标过去半年每周的状态：没收紧、接近、收紧。
+- 7 个主题各一张卡片：信用、利率、流动性、市场仓位、产业、公司财报、政策。每张都有一段讲解，用本周的真实数字讲一个概念，适合边看边学宏观。
+- 未来的 FOMC 会议和国债拍卖，以及每项数据最近一次更新的时间。
+
+## 它是怎么做出来的
+
+1. **抓数据。** 全部是免费来源，大部分是官方的：美联储的 FRED 数据库、SEC 的财报申报、美国财政部、CFTC、Cboe 期权数据、台湾上市公司月营收。
+2. **算指标。** 由代码计算，结果可以复查。历史数据只用当时已经公布的部分，不会“偷看未来”。
+3. **分主题写分析。** 每个主题交给一个 AI 单独写，它只看这个主题的数据。然后汇总成远、中、近三个期限，最后得出总结论。分层写的好处是哪一步出错都能查到，也可以只重写那一步。
+4. **核对数字。** 分析里的每个数字都必须能在原始数据里找到，找不到就不收。分析里也不允许出现内部编号，要写成人能看懂的名字。
+5. **生成网页。** 页面按 IBM 的 Carbon 设计规范排版，支持手机和暗色模式，每种状态都用颜色加形状区分。
+
+写作规范在 `playbook/zh/style.md`：结论先行，一句话只说一件事，术语第一次出现时当场解释。
 
 ## 快速开始
 
@@ -58,56 +55,52 @@ uv venv --python 3.12 .venv
 uv pip install --python .venv/Scripts/python.exe -r requirements.txt   # macOS/Linux 用 .venv/bin/python
 cp .env.example .env        # 填 CONTACT_NAME、CONTACT_EMAIL（SEC 要求）；SEMIS_LANG=zh 或 en
 P=.venv/Scripts/python.exe
-$P -m semis prepare         # 全部信道：抓取 → 信号 → 第 1 级输入包
-$P -m semis backfill        # 可选：回补 26 周信号历史
+$P -m semis prepare         # 抓数据、算指标、给每个主题准备输入
+$P -m semis backfill        # 可选：补算过去 26 周的指标
 $P -m unittest discover -s tests
 ```
 
 ## 每周运行
 
-模型那几步是为 Claude Code 设计的：说“出本周报告”（或 “run this week's report”），`.claude/skills/weekly-report/SKILL.md` 会跑完整流程。手动跑：
+写分析的几步是为 Claude Code 设计的：在 Claude Code 里说“出本周报告”（或 “run this week's report”），它会按 `.claude/skills/weekly-report/SKILL.md` 跑完整个流程。手动跑的话：
 
 ```
 $P -m semis prepare
-$P -m semis prompt --run 2026-W44 --channel C1    # 每个信道（C1..C7）各交给一个模型
-$P -m semis check  --run 2026-W44
-$P -m semis ingest --run 2026-W44
-#   第 2、3 级：按 playbook/<语言>/aggregation.md 写 near/mid/far.md 和 synthesis.md
-$P -m semis check  --run 2026-W44
-$P -m semis ingest --run 2026-W44
-$P -m semis render --run 2026-W44                 # reports/2026-W44.html
-$P -m semis review                                 # 4–8 周前待回填的判断
+$P -m semis prompt --run 2026-W44 --channel C1    # 生成给 AI 的任务说明，C1 到 C7 每个主题一份
+$P -m semis check  --run 2026-W44                 # 核对数字来源、检查有没有内部编号
+$P -m semis ingest --run 2026-W44                 # 登记结论
+#   然后按 playbook/zh/aggregation.md 写远、中、近和总结论，再 check、ingest 一次
+$P -m semis render --run 2026-W44                 # 生成网页 reports/2026-W44.html
+$P -m semis review                                 # 列出 4 到 8 周前、该回头核对的判断
 $P -m semis calibrate --run 2026-W44 --item 2:near:state --outcome 对 --note "……"
 ```
 
-`--lang zh|en`（或 `.env` 里的 `SEMIS_LANG`）决定规则手册、提示词和网页的语言。一期只用一种语言。
+`--lang zh|en`（或 `.env` 里的 `SEMIS_LANG`）决定规则手册、提示词和网页用哪种语言。一期只用一种语言。
 
-## 数据源和条款
+## 数据来源和使用条款
 
-所有来源都免费，大部分是官方的（FRED、SEC EDGAR、TreasuryDirect、联储、CFTC）。Cboe 延迟期权链和 FinMind 是公开的，但条款在清单里标为 `check`，每天只抓一次，供个人研究。SEC 联系邮箱只发给 sec.gov；其他来源如实标明 `python-requests`（FRED 会拦截不带这个标识的请求）。
+所有来源都免费。Cboe 的延迟期权数据和 FinMind 是公开的，但条款没有明确允许自动抓取，所以在数据清单里标为 `check`，每天只抓一次，只用于个人研究。
+
+SEC 要求请求里带联系邮箱，这个邮箱只发给 sec.gov。其他来源收到的都是如实的 `python-requests` 标识；FRED 会拦截不带这个标识的请求。
 
 ## 已知限制
 
-- GEX 依赖做市商方向假设（客户卖 call、买 put），贴近 flip 时符号可能翻转；数据日当天到期的合约已排除。
-- 没有 when-issued 收益率，拍卖走弱用认购倍数和 10 年期变动近似。
-- swaption 隐含波动不免费，暂用 10 年期已实现波动代替。
-- FRED 上的 ICE BofA 利差只有近 3 年，本地历史攒起来之前分位样本偏短。
-- 6-K 没有事项编号，台积电和 ASML 的季报靠附件正文识别；开头没提到季度和业绩项的新闻稿会漏掉。
-- 大部分阈值是标为“补充”的初值，靠校准修正。
-- 回补的历史用当前数据版本，修订无法还原；GEX 在第一次快照之前没有历史。
-
-网页按 IBM Carbon 设计体系（字阶、间距、颜色 token、tile、tag、数据表），迷你走势图参照英国政府分析职能（Analysis
-Function）的图表指南。每个状态都是颜色加形状，不单靠颜色区分。
+- **做市商仓位是估算的。** 期权数据不告诉你做市商站在哪一边，我们按行业通行的假设算。价格离临界点很近时，结论可能反过来。
+- **有几项数据拿不到，用近似代替。** 没有国债发行前的交易数据，拍卖好坏用认购倍数近似；利率期权的隐含波动要付费，暂时用已实现波动代替。
+- **信用利差的历史只有 3 年。** 历史分位的样本偏短，要等本地数据攒起来。
+- **台积电和 ASML 的财报靠正文识别。** 它们交的 6-K 表格没有事项编号，开头没提到季度和业绩的新闻稿会漏掉。
+- **大部分警戒线是我们自己定的初值。** 每 4 到 8 周对照实际结果复核一次，再调整。
+- **补算的历史用的是现在的数据版本。** 后来修订过的数字无法还原；期权仓位数据在第一次抓取之前没有历史。
 
 ## 目录
 
 ```
-semis/        抓取、信号、渲染、命令行（python -m semis）
-sources/      registry.yaml
-signals/      signals.yaml（阈值和修改记录）
-schema/       schema.sql
-playbook/     zh/ 和 en/：目录页、不变量、聚合规则、写作规范、channels/C1–C7；glossary.yaml
-prompts/      第 1 级提示词模板（zh、en）
+semis/        抓取、指标、网页、命令行（python -m semis）
+sources/      数据清单 registry.yaml
+signals/      指标定义和警戒线 signals.yaml，含修改记录
+schema/       数据库结构 schema.sql
+playbook/     规则手册，zh/ 和 en/ 各一套；glossary.yaml 是编号对应的名字
+prompts/      给 AI 的任务模板（zh、en）
 tests/        回归测试
 ```
 

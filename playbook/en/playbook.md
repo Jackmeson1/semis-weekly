@@ -1,8 +1,8 @@
 # Distant-Horizon Ordinal Playbook (draft v0.2, 2026-10-28)
 
-The author: a macro trader who writes publicly on X; this playbook does not identify them.
+In this playbook, "the author" is the macro trader whose public commentary the framework draws on.
 
-These are the judgment rules the model follows when it writes the weekly report. They are distilled from the author's 3,271 posts between 2024-01 and 2026-10 (the research process is not published with this repository). Code computes all numbers according to `signals/signals.yaml`; the model only reads the results and does not compute anything itself.
+These are the judgment rules the model follows when it writes the weekly report. They are drawn from the author's public commentary from 2024 to 2026. Code computes all numbers according to `signals/signals.yaml`; the model only reads the results and does not compute anything itself.
 
 ## Three-level aggregation
 

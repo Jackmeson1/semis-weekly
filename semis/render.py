@@ -40,8 +40,8 @@ T = {
         'cal_proj': '，带经济预测', 'cal_to': ' 至 ', 'cal_note': '云厂和芯片公司的财报日期不在数据里，发布后会出现在“已发财报”。',
         'cal_decision': {'raise': '加息', 'lower': '降息', 'maintain': '维持'},
         'fresh_head': ('序列', '最新数据', '最近抓取'), 'event': '事件：',
-        'foot': ['三级聚合：信道（第 1 级）→ 远中近（第 2 级）→ 综合（第 3 级）。每一级只读下一级的结论，日志里的数字都经过出处校验。',
-                 '判断规则提炼自一位在 X 上公开写作的宏观交易者三年的帖子（不公开其身份）。自用研究，不构成投资建议。'],
+        'foot': ['先按主题分别分析，再汇总成远、中、近三个期限，最后给出总结论。分析里的每个数字都核对过来源。',
+                 '框架参考了一位宏观交易者的公开观点，文中的“作者”就是指这位交易者。仅供个人研究，不构成投资建议。'],
         'sparks': {'hy_oas': '高收益利差（%）', 'ig_oas': '投资级利差（%）', 'ust10y': '10 年期收益率（%）',
                    'ust2s10s': '2s10s（%）', 'tga': 'TGA（百万美元）', 'on_rrp': '逆回购（十亿美元）',
                    'vix': 'VIX', 'spx': '标普 500', 'tsmc_rev': '台积电月营收（新台币）'},
@@ -84,10 +84,10 @@ T = {
         'cal_note': 'Cloud and chip earnings dates are not in the data; releases appear under "Results filed" once out.',
         'cal_decision': {'raise': 'hike', 'lower': 'cut', 'maintain': 'hold'},
         'fresh_head': ('Series', 'Latest data', 'Last fetched'), 'event': 'event: ',
-        'foot': ['Three-level aggregation: channels (level 1) → horizons (level 2) → synthesis (level 3). Each level reads '
-                 'only the level below, and every number in a log is checked against its source.',
-                 'The rules are distilled from three years of public posts by a macro trader on X, who is not identified '
-                 'here. Personal research, not investment advice.'],
+        'foot': ['Each topic is analyzed on its own, then combined into far, mid and near horizons, then into one '
+                 'conclusion. Every number in the notes is checked against its source.',
+                 'The framework draws on a macro trader’s public commentary; "the author" in the notes means that '
+                 'trader. Personal research, not investment advice.'],
         'sparks': {'hy_oas': 'High-yield spread (%)', 'ig_oas': 'IG spread (%)', 'ust10y': '10-year yield (%)',
                    'ust2s10s': '2s10s (%)', 'tga': 'TGA ($mn)', 'on_rrp': 'Reverse repo ($bn)', 'vix': 'VIX',
                    'spx': 'S&P 500', 'tsmc_rev': 'TSMC monthly revenue (TWD)'},
