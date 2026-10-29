@@ -20,7 +20,7 @@ import re
 import sys
 import traceback
 
-from . import chains, fetch, signals
+from . import casebook, chains, fetch, signals
 from .config import ID_RE, ROOT, lang, locale, localized, playbook_dir, run_id, signal_defs
 from .db import connect
 
@@ -385,6 +385,19 @@ def cmd_chains(a):
     print(f'-> {path.relative_to(ROOT)}')
 
 
+def cmd_cases(a):
+    con = connect()
+    if a.build:
+        idx = casebook.build(con)
+        print(f'{len(idx)} cases -> {casebook.CASES.relative_to(ROOT)}')
+    if a.run:
+        now, ranked = casebook.similar(con, a.run, a.top)
+        lit = [k for k, v in now.items() if v in casebook.LIT]
+        print(f"{a.run}: lit {', '.join(lit) or 'none'}")
+        for overlap, agreement, c in ranked:
+            print(f"  {overlap:.2f} {agreement:.2f}  v{c['video']} {c['date']}  {'/'.join(c['tags'])}  {c['conclusion'][:60]}")
+
+
 def cmd_status(a):
     con = connect()
     print('data freshness:')
@@ -438,6 +451,10 @@ def main(argv=None):
     sub.add_parser('check').add_argument('--run', required=True)
     sub.add_parser('render').add_argument('--run', required=True)
     sub.add_parser('chains').add_argument('--run', required=True)
+    cs = sub.add_parser('cases')
+    cs.add_argument('--build', action='store_true')
+    cs.add_argument('--run')
+    cs.add_argument('--top', type=int, default=5)
     pr = sub.add_parser('prompt')
     pr.add_argument('--run', required=True)
     pr.add_argument('--channel', required=True)
@@ -448,7 +465,7 @@ def main(argv=None):
         os.environ['SEMIS_LANG'] = a.lang
     {'fetch': cmd_fetch, 'signals': cmd_signals, 'packet': cmd_packet, 'prepare': cmd_prepare, 'prompt': cmd_prompt,
      'ingest': cmd_ingest, 'check': cmd_check, 'render': cmd_render, 'status': cmd_status,
-     'review': cmd_review, 'chains': cmd_chains, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
+     'review': cmd_review, 'chains': cmd_chains, 'cases': cmd_cases, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import duckdb
 
-from semis import chains, fetch, render, signals
+from semis import casebook, chains, fetch, render, signals
 from semis.__main__ import _ids_shown, _numbers_in, _unmatched
 from semis.config import ID_RE, ROOT, expand_id, glossary
 
@@ -283,3 +283,24 @@ class ChainLinks(unittest.TestCase):
         met, ev = chains._test(con, {'ratio': ['vix', 'vix3m'], 'at_least': 1.0}, '2026-W43', D(2026, 10, 23), {})
         self.assertTrue(met)
         self.assertIn('1.10', ev)
+
+
+class CaseMatch(unittest.TestCase):
+    """A case's data is read as of the Friday before the video, and cases rank by shared lit links."""
+
+    def test_friday_before(self):
+        self.assertEqual(casebook.friday_before(D(2026, 10, 27)), D(2026, 10, 23))  # Tuesday
+        self.assertEqual(casebook.friday_before(D(2026, 10, 23)), D(2026, 10, 16))  # a Friday video cannot see Friday's close
+        self.assertEqual(casebook.friday_before(D(2026, 10, 25)), D(2026, 10, 23))  # Sunday
+
+    def test_match(self):
+        keep = ['a', 'b', 'c', 'd']
+        now = {'a': 'on', 'b': 'recent', 'c': 'off', 'd': 'unseen'}
+        self.assertEqual(casebook.match(now, now, keep), (1.0, 1.0))
+        # d is unseen in one week, so it is left out; one of two lit links shared
+        overlap, agreement = casebook.match(now, {'a': 'on', 'b': 'off', 'c': 'off', 'd': 'on'}, keep)
+        self.assertEqual(overlap, 0.5)
+        self.assertAlmostEqual(agreement, 3 / 5)
+        calm = {'a': 'off', 'b': 'off', 'c': 'off'}
+        self.assertEqual(casebook.match(calm, calm, keep)[0], 1.0)
+        self.assertEqual(casebook.match(now, calm, keep)[0], 0.0)

@@ -177,3 +177,29 @@ prompt:
 
       - The channel state says whether a policy shock is in force: none = slack; in force but before expiry = watch;
       just appeared = binding.'
+# Past-case cards (semis cases --build)
+case:
+  title: Case {video} · {date}
+  tags: 'Tags: {tags}'
+  data: '## What the data showed (as of {rid}, before the video)'
+  lit: 'Lit links: {links}'
+  lit_item: '{name} ({state})'
+  'on': now
+  recent: recently
+  unseen: 'Links not visible in public data: {links}'
+  none: none
+  view: '## How they read it'
+  fields:
+    conclusion: Conclusion
+    action: Action
+    would_change: What would change their mind
+    admits: Past calls they said were wrong
+    contrarian: Where they differed from the consensus
+  after: '## What happened next (facts, no verdict)'
+  sox: '- Semiconductor index: {d10} over 10 trading days, {d20} over 20; worst drawdown within 20 days {dd}'
+  rates: '- 10-year yield over 20 days {y}; high-yield spread over 20 days {hy}; VIX over 10 days {vix}'
+  no_data: no data
+  pts: ' pts'
+  source: 'Source: video {video}, at {refs}'
+  sep: '; '
+  join: ', '
