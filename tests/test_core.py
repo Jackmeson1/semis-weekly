@@ -340,3 +340,15 @@ class JudgeSources(unittest.TestCase):
             p.write_text('# Rules\n\n````markdown\n# Example log\n```json\n{}\n```\n````\n\n## Real section\n', encoding='utf-8')
             self.assertEqual(judges._heads(p), ['Rules', 'Real section'])
 
+
+class ReleaseLag(unittest.TestCase):
+    """FRED gives no release dates: a monthly figure is read only after its usual publication lag."""
+
+    def test_monthly_estimate(self):
+        s = {'freq': 'monthly', 'release_lag_days': 10}
+        late = dt.datetime(2030, 1, 1)
+        self.assertEqual(fetch.released_estimate(D(2026, 9, 1), s, late), dt.datetime(2026, 10, 10))  # Sep ends the 30th
+        self.assertEqual(fetch.released_estimate(D(2026, 2, 1), s, late), dt.datetime(2026, 3, 10))
+        # already fetched before the estimate: it was out by then
+        self.assertEqual(fetch.released_estimate(D(2026, 9, 1), s, dt.datetime(2026, 10, 3)), dt.datetime(2026, 10, 3))
+        self.assertIsNone(fetch.released_estimate(D(2026, 9, 1), {'freq': 'daily'}, late))

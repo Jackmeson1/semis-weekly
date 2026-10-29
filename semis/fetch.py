@@ -35,6 +35,18 @@ def upsert_obs(con, s, entity, rows, first_seen, fetch_id):
     return len(new)
 
 
+def released_estimate(day, s, seen):
+    """FRED's csv has no release dates. For a series with release_lag_days, estimate one: the end of the period plus
+    the usual lag, so history never reads a monthly figure (payrolls, CPI) before it was published. A value we
+    have already fetched was out by then, so the estimate is never later than seen."""
+    lag = s.get('release_lag_days')
+    if lag is None:
+        return None
+    if s.get('freq') == 'monthly':  # FRED dates a month by its first day
+        day = (day.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1)
+    return min(dt.datetime.combine(day + dt.timedelta(days=lag), dt.time()), seen)
+
+
 def fred_csv(con, s, src):
     url = src['url'].format(id=s['params']['id'])
     fid, now, body, err = http.get(con, 'fred_csv', s['id'], url, ext='csv')
@@ -46,7 +58,8 @@ def fred_csv(con, s, src):
             continue
         if rec[1] in ('', '.'):
             continue
-        rows.append((parse_date(rec[0]), float(rec[1]), None))
+        day = parse_date(rec[0])
+        rows.append((day, float(rec[1]), released_estimate(day, s, now)))
     return {'': upsert_obs(con, s, '', rows, now, fid)}
 
 

@@ -98,6 +98,18 @@ series:
     fields: [competitiveAuctionCloseDate, originalSecurityTerm, securityTerm, reopening, highYield, bidToCoverRatio, offeringAmount, cusip]
   - {id: tlt_iv30, layer: L1.long_end, source: cboe_iv30, entities: [TLT], freq: daily, unit: pct,
      note: Archived only, not yet a signal. A public proxy for swaption implied vol; becomes a C2 signal after about 60 trading days of history}
+  # The data the Fed reacts to. Monthly, and FRED gives no release dates, so each carries release_lag_days: days
+  # after the month ends until it is usually out. History reads a month only after that. Values are the latest vintage.
+  - {id: payrolls,     layer: L1.fed_path, source: fred_csv, params: {id: PAYEMS},   freq: monthly, unit: thousands,
+     release_lag_days: 10, note: Nonfarm payrolls level; out on the first Friday or so after the month}
+  - {id: unemployment, layer: L1.fed_path, source: fred_csv, params: {id: UNRATE},   freq: monthly, unit: pct,
+     release_lag_days: 10}
+  - {id: cpi,          layer: L1.fed_path, source: fred_csv, params: {id: CPIAUCSL}, freq: monthly, unit: index,
+     release_lag_days: 16, note: CPI all items, seasonally adjusted; out about two weeks after the month}
+  - {id: core_cpi,     layer: L1.fed_path, source: fred_csv, params: {id: CPILFESL}, freq: monthly, unit: index,
+     release_lag_days: 16, note: CPI less food and energy}
+  - {id: core_pce,     layer: L1.fed_path, source: fred_csv, params: {id: PCEPILFE}, freq: monthly, unit: index,
+     release_lag_days: 31, note: The Fed's preferred inflation gauge; out about a month after the month}
 
   # ---------- C3 liquidity plumbing (all FRED, aligned on Wednesdays) ----------
   - {id: fed_assets, layer: L2.qt_balance_sheet, source: fred_csv, params: {id: WALCL},     freq: weekly, unit: usd_mn}
@@ -106,6 +118,12 @@ series:
   - {id: on_rrp,     layer: L2.rrp_reserves,     source: fred_csv, params: {id: RRPONTSYD}, freq: daily,  unit: usd_bn}
   - {id: reserves,   layer: L2.rrp_reserves,     source: fred_csv, params: {id: WRESBAL},   freq: weekly, unit: usd_mn,
      note: Week average; the Wednesday level is WRBWFRBL}
+  - {id: sofr, layer: L2.funding_rates, source: fred_csv, params: {id: SOFR}, freq: daily, unit: pct, release_lag_days: 1,
+     note: Secured overnight financing rate, published the next business morning}
+  - {id: iorb, layer: L2.funding_rates, source: fred_csv, params: {id: IORB}, freq: daily, unit: pct,
+     note: Interest on reserve balances. SOFR trading above IORB is a sign reserves are getting scarce}
+  - {id: nfci, layer: L2.funding_rates, source: fred_csv, params: {id: NFCI}, freq: weekly, unit: index, release_lag_days: 5,
+     note: Chicago Fed National Financial Conditions Index; above zero is tighter than average. Week ending Friday, out the next Wednesday}
 
   # ---------- C4 positioning ----------
   - {id: vix, layer: L4.dealer_gamma, source: cboe_vix, freq: daily, unit: index}
@@ -153,6 +171,10 @@ series:
   # ---------- C7 policy and events ----------
   - {id: fomc, layer: L1.fed_path, source: fed_fomc, kind: event, unit: event}
   - {id: auctions_upcoming, layer: L2.treasury_issuance, source: treasurydirect_upcoming, kind: event, unit: event}
+  - {id: brent,  layer: L3.oil, source: fred_csv, params: {id: DCOILBRENTEU}, freq: daily, unit: usd_bbl, release_lag_days: 7,
+     note: Brent spot from the EIA, posted on FRED several days late}
+  - {id: usdjpy, layer: L3.fx,  source: fred_csv, params: {id: DEXJPUS},      freq: daily, unit: jpy, release_lag_days: 7,
+     note: Yen per dollar, H.10 noon buying rate, released weekly on Mondays}
 
 # Planned for v2 (need a key or file parsing)
 later:
