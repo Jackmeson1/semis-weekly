@@ -25,6 +25,14 @@ There is no automatic signal in v1. The inputs are:
 - Do not treat "good results, falling share price" as an opportunity automatically. Check C4 first: if positioning is driving the selling, wait for positioning to repair (SW-m-01).
 - A semiconductor company's own EPS is not the most important thing; the hyperscalers' answers matter more.
 
+## From the videos (the author, stated, 2024-05 to 2026-10, 83 videos)
+
+What follows is the logic the author laid out in the weekly videos, recorded as they meant it. It does not mean the logic has been validated. The figures in brackets are the number of videos that support it and when. Where the author changed their position, the date is given. Items marked "added" are ours, not the author's. These are probability judgments, not laws. A conclusion is usually a chain of conditional judgments multiplied together; each link is likely but none is certain, and the author often says "most likely", "I think" or "fifty-fifty". Read each item as "under these conditions, it tends to go this way". When checking, look at which links have happened, one by one; do not test the whole conclusion as if it had to hold.
+
+- **A share price that falls first, with talk of "falling demand" coming only later, does not mean demand has really weakened** (5 videos, 2026). First check whether earnings were really revised down and whether industry readings have weakened. If earnings did not slow, and rates or credit moved first and positioning was pushed down, classify it as a liquidity shock.
+- **Earnings fatigue.** Every quarter needs stronger growth or guidance to hold the share price up, and the bar rises each quarter.
+- **The buyback blackout** is a calendar background for US equity buying. Buybacks pause around earnings, and the support weakens with them.
+
 ## What to write in this week's log
 
 State (whether there were important earnings this week), one line, evidence, the answer to C5's question (adds / subtracts / no information), deviations and uncertainty.

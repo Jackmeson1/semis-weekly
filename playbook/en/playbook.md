@@ -123,3 +123,4 @@ playbook/
 | 0.1 | 2026-10-28 | First draft, single file |
 | 0.2 | 2026-10-28 | Split into three-level aggregation (channel, horizon, synthesis); added explainers to channel files |
 | 0.3 | 2026-10-28 | Added the channel log format; added horizon and synthesis log formats and the transmission-chain check to aggregation.md; restored CAL-03 to its original definition (rate volatility and credit spreads both at watch); fixed the wording of the GEX dealer-direction convention in C4 |
+| 0.4 | 2026-10-29 | Added the author's logic from the 83 videos: "From the videos" in each channel, invariant additions, and section 3 of the aggregation rules (horizon exceptions, veto conditions, transmission chains with CH-A extended, CH-C two-way, CH-D corrected and CH-E to CH-I new, and dated views). Recorded as the author meant it, with the number of videos and dates marked |

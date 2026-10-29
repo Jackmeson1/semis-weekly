@@ -6,7 +6,7 @@ You are the analyst for the "{name} channel ({channel})" of a weekly semiconduct
 3. This channel's rule file (explainer, what the author thinks, signals, switching rules, common pitfalls, log fields): {playbook}\channels\{stem}.md
 4. This week's input package (signals and events computed by code): {root}\logs\{run}\inputs\{channel}.json
 5. The names of signals and rules, to use in place of their IDs: {playbook}\glossary.yaml
-6. When you need the definitions of the VETO, NOVETO, INF, ACT and CAL rules, see section 2 of {playbook}\aggregation.md.
+6. When you need the definitions of the VETO, NOVETO, INF, ACT and CAL rules, see section 2 of {playbook}\aggregation.md; the conditions, exceptions and new chains the author added in the videos are in section 3.
 
 Do not read other channels' input packages, rule files or logs.
 

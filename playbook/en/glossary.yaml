@@ -45,6 +45,11 @@ CH-A: rate volatility into credit and cloud funding
 CH-B: credit into cloud capex
 CH-C: a volatility shock forcing systematic selling
 CH-D: a policy shock into the long end and credit
+CH-E: a political event through uncertainty into vol sellers and gamma
+CH-F: a policy shock that cuts growth, lifts inflation and boxes in the Fed
+CH-G: capex draining the investment-grade pool and squeezing non-AI borrowers
+CH-H: large financings landing together and draining long money
+CH-I: a supply disruption that lifts inflation first and cuts demand later
 SW-m-01: volatility falls and longs return
 SW-m-02: bonds first
 SW-m-03: once gamma recovers
