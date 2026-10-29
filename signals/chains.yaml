@@ -1,0 +1,163 @@
+# Transmission chains as fixed tests on data. Code computes each link's status; no model judges it.
+#
+# Status of a link in a weekly run:
+#   on      the test is met at this run's date
+#   recent  not met now, but met at one of the previous `recent_runs` runs (it happened and has faded)
+#   off     the data exists and the test is not met in that window
+#   unseen  no public data for this link (manual), or the data is missing; never counted as on or off
+#
+# Tests reuse signal states from signals.yaml wherever a signal exists, so the chains add no new thresholds.
+# Series without a signal use one generic test, a change against its own three-year history (`pct_*` below).
+# Those cut-offs are ours, not the author's.
+#
+# Test forms:
+#   {signal: ID, state: watch|binding}             signal state at least this
+#   {series: ID, change: N, pct_at_least: P}       N-observation change at or above its 3-year P-th percentile
+#   {series: ID, change: N, pct_at_most: P, relative: true}   same with % change, at or below the P-th percentile
+#   {ratio: [A, B], at_least: X}                   A / B at or above X
+#   {event: KIND, within_days: N}                  an event of that kind from N days ago to N days ahead
+#   {any: [...]} / {all: [...]}
+#   manual: <what to check>                        no public data; a person fills it from notes, otherwise unseen
+
+conventions:
+  recent_runs: 4        # added: "recent" looks back four weekly runs
+  pct_high: 80          # added: generic cut-off for series without a signal
+  pct_low: 20
+
+chains:
+  CH-A:
+    name: Rate volatility into credit, cloud funding and industry
+    basis: author
+    note: Strongest when the Fed does not cap the long end (from 2026-03). The author's own reading is implied
+      swaption volatility, which we cannot get; realized volatility and 5-day speed stand in.
+    links:
+      - id: CH-A.1
+        name: Rate volatility or speed rises
+        test: {any: [{signal: S-L1-02, state: watch}, {signal: S-L1-01, state: watch}]}
+      - id: CH-A.2
+        name: Credit spreads widen
+        test: {any: [{signal: S-L3-01, state: watch}, {signal: S-L3-02, state: watch}]}
+      - id: CH-A.3
+        name: The lowest-rated credit cracks first
+        test: {series: ccc_oas, change: 20, pct_at_least: 80}
+      - id: CH-A.4
+        name: Cloud and neocloud funding gets harder
+        test: {manual: failed or postponed bond and equity deals, wider single-name CDS}
+      - id: CH-A.5
+        name: Semiconductor stocks are sold
+        test: {series: sox, change: 20, pct_at_most: 20, relative: true}
+      - id: CH-A.6
+        name: Industry readings weaken
+        test: {any: [{signal: S-L5-01, state: watch}, {signal: S-L5-02, state: watch}]}
+
+  CH-B:
+    name: Credit into cloud capex and industry
+    basis: inferred
+    links:
+      - id: CH-B.1
+        name: Credit spreads widen
+        test: {any: [{signal: S-L3-01, state: watch}, {signal: S-L3-02, state: watch}]}
+      - id: CH-B.2
+        name: Cloud capex leans on outside money
+        test: {signal: S-L3-03, state: watch}
+      - id: CH-B.3
+        name: Industry readings weaken
+        test: {any: [{signal: S-L5-01, state: watch}, {signal: S-L5-02, state: watch}]}
+
+  CH-C:
+    name: Volatility shock into forced selling and deleveraging, and back
+    basis: author
+    note: Runs both ways. After a spike fades, CTAs and volatility-control funds most likely buy whatever the
+      direction; a link that is recent rather than on is the fading half.
+    links:
+      - id: CH-C.1
+        name: Volatility shock
+        test: {signal: S-L4-02, state: watch}
+      - id: CH-C.2
+        name: Near-term protection costs more than later
+        test: {ratio: [vix, vix3m], at_least: 1.0}
+      - id: CH-C.3
+        name: Dealer gamma is negative
+        test: {signal: S-L4-03, state: binding}
+      - id: CH-C.4
+        name: Trend funds are forced sellers
+        test: {manual: bank CTA flow estimates, not public}
+      - id: CH-C.5
+        name: Deleveraging shows in semiconductor prices
+        test: {series: sox, change: 20, pct_at_most: 20, relative: true}
+
+  CH-D:
+    name: Policy shock into the long end (and, by our inference, credit)
+    basis: author (first half); added (credit link)
+    note: The direction of the long end depends on the phase; the test only asks whether it moved fast.
+    links:
+      - id: CH-D.1
+        name: A policy shock is in force
+        test: {manual: from the C7 log and the user's notes}
+      - id: CH-D.2
+        name: The long end moves fast
+        test: {signal: S-L1-01, state: watch}
+      - id: CH-D.3
+        name: Credit spreads widen
+        test: {any: [{signal: S-L3-01, state: watch}, {signal: S-L3-02, state: watch}]}
+
+  CH-E:
+    name: A scheduled or political event through uncertainty into vol sellers and gamma
+    basis: author
+    links:
+      - id: CH-E.1
+        name: A scheduled event is close
+        test: {event: fomc, within_days: 14}
+      - id: CH-E.2
+        name: Volatility is bid
+        test: {any: [{signal: S-L4-02, state: watch}, {ratio: [vix, vix3m], at_least: 1.0}]}
+      - id: CH-E.3
+        name: Dealer gamma is negative
+        test: {signal: S-L4-03, state: binding}
+
+  CH-F:
+    name: A policy shock cuts growth, lifts inflation and boxes in the Fed
+    basis: author
+    links:
+      - id: CH-F.1
+        name: A policy shock is in force
+        test: {manual: from the C7 log and the user's notes}
+      - id: CH-F.2
+        name: Rate cuts are priced out
+        test: {series: ust2y, change: 20, pct_at_least: 80}
+      - id: CH-F.3
+        name: Inflation data run hot
+        test: {manual: CPI or PCE release; no inflation series is fetched yet}
+
+  CH-G:
+    name: Capex drains the investment-grade pool and squeezes non-AI borrowers
+    basis: author
+    links:
+      - id: CH-G.1
+        name: Heavy AI investment-grade issuance
+        test: {manual: issuance totals are not public}
+      - id: CH-G.2
+        name: Investment-grade spreads widen
+        test: {signal: S-L3-02, state: watch}
+
+  CH-H:
+    name: Large financings landing together drain long money
+    basis: author
+    links:
+      - id: CH-H.1
+        name: Several large deals in the same two to three weeks
+        test: {manual: bond deals, IPOs, lock-up expiries from filings and news}
+      - id: CH-H.2
+        name: Semiconductor stocks are sold
+        test: {series: sox, change: 20, pct_at_most: 20, relative: true}
+
+  CH-I:
+    name: A supply disruption lifts inflation first and cuts demand later
+    basis: author
+    links:
+      - id: CH-I.1
+        name: Supply disruption (shipping lanes, oil)
+        test: {manual: no oil or shipping series is fetched yet}
+      - id: CH-I.2
+        name: Inflation data run hot
+        test: {manual: CPI or PCE release}

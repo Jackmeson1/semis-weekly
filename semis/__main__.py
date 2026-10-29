@@ -20,7 +20,7 @@ import re
 import sys
 import traceback
 
-from . import fetch, signals
+from . import chains, fetch, signals
 from .config import ID_RE, ROOT, lang, locale, localized, playbook_dir, run_id, signal_defs
 from .db import connect
 
@@ -372,6 +372,19 @@ def cmd_render(a):
     print(f'-> {out.relative_to(ROOT).as_posix()}')
 
 
+def cmd_chains(a):
+    con = connect()
+    res, path = chains.write(con, a.run)
+    mark = {'on': '●', 'recent': '◐', 'off': '○', 'unseen': '·'}
+    for cid, c in res.items():
+        n = c['count']
+        print(f"{cid}  {c['name']}  on {n['on']} · recent {n['recent']} · off {n['off']} · unseen {n['unseen']}")
+        for l in c['links']:
+            past = f"  (met {', '.join(r[-3:] for r in l['recent_runs_met'])})" if l['recent_runs_met'] else ''
+            print(f"   {mark[l['status']]} {l['id']:8s} {l['status']:7s} {l['name']}: {l['evidence']}{past}")
+    print(f'-> {path.relative_to(ROOT)}')
+
+
 def cmd_status(a):
     con = connect()
     print('data freshness:')
@@ -424,6 +437,7 @@ def main(argv=None):
     cal.add_argument('--threshold-change', dest='threshold_change')
     sub.add_parser('check').add_argument('--run', required=True)
     sub.add_parser('render').add_argument('--run', required=True)
+    sub.add_parser('chains').add_argument('--run', required=True)
     pr = sub.add_parser('prompt')
     pr.add_argument('--run', required=True)
     pr.add_argument('--channel', required=True)
@@ -434,7 +448,7 @@ def main(argv=None):
         os.environ['SEMIS_LANG'] = a.lang
     {'fetch': cmd_fetch, 'signals': cmd_signals, 'packet': cmd_packet, 'prepare': cmd_prepare, 'prompt': cmd_prompt,
      'ingest': cmd_ingest, 'check': cmd_check, 'render': cmd_render, 'status': cmd_status,
-     'review': cmd_review, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
+     'review': cmd_review, 'chains': cmd_chains, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
 
 
 if __name__ == '__main__':

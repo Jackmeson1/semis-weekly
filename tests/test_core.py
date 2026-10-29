@@ -11,7 +11,7 @@ from pathlib import Path
 
 import duckdb
 
-from semis import fetch, render, signals
+from semis import chains, fetch, render, signals
 from semis.__main__ import _ids_shown, _numbers_in, _unmatched
 from semis.config import ID_RE, ROOT, expand_id, glossary
 
@@ -253,3 +253,33 @@ class SignalRules(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ChainLinks(unittest.TestCase):
+    """Link status comes from data only: on, recent (met in an earlier run), off, unseen."""
+
+    def _hist(self, con, rid, sid, state, value=1.0):
+        con.execute('INSERT INTO signal_history VALUES (?,?,?,?,?,?,?,?,?)',
+                    [rid, sid, 'L0.other', D(2026, 10, 1), value, state, '{}', dt.datetime(2026, 10, 28), 'live'])
+
+    def test_on_recent_off_unseen(self):
+        con = _db()
+        for rid, st in (('2026-W41', 'watch'), ('2026-W42', 'slack'), ('2026-W43', 'slack')):
+            self._hist(con, rid, 'S-L3-01', st)
+            self._hist(con, rid, 'S-L4-03', 'binding' if rid == '2026-W43' else 'slack')
+        conv = {'recent_runs': 4}
+        t_credit = {'signal': 'S-L3-01', 'state': 'watch'}
+        self.assertEqual(chains._test(con, t_credit, '2026-W41', D(2026, 10, 9), conv)[0], True)
+        self.assertEqual(chains._test(con, t_credit, '2026-W43', D(2026, 10, 23), conv)[0], False)
+        self.assertIsNone(chains._test(con, {'manual': 'news'}, '2026-W43', D(2026, 10, 23), conv)[0])
+        self.assertIsNone(chains._test(con, {'signal': 'S-L1-02', 'state': 'watch'}, '2026-W43', D(2026, 10, 23), conv)[0])
+        any_t = {'any': [t_credit, {'signal': 'S-L4-03', 'state': 'binding'}]}
+        self.assertEqual(chains._test(con, any_t, '2026-W43', D(2026, 10, 23), conv)[0], True)
+
+    def test_ratio(self):
+        con = _db()
+        _obs(con, 'vix', [(D(2026, 10, 23), 22.0)])
+        _obs(con, 'vix3m', [(D(2026, 10, 23), 20.0)])
+        met, ev = chains._test(con, {'ratio': ['vix', 'vix3m'], 'at_least': 1.0}, '2026-W43', D(2026, 10, 23), {})
+        self.assertTrue(met)
+        self.assertIn('1.10', ev)

@@ -68,6 +68,8 @@ series:
   # ---------- C1 credit ----------
   - {id: hy_oas, layer: L3.credit, source: fred_csv, params: {id: BAMLH0A0HYM2}, freq: daily, unit: pct}
   - {id: ig_oas, layer: L3.credit, source: fred_csv, params: {id: BAMLC0A0CM},   freq: daily, unit: pct}
+  - {id: ccc_oas, layer: L3.credit, source: fred_csv, params: {id: BAMLH0A3HYC}, freq: daily, unit: pct,
+     note: CCC and below; FRED keeps only the last three years of ICE BofA series since 2026-04}
   - id: csp_capex
     layer: L5.csp_capex
     source: sec_concept
@@ -80,6 +82,10 @@ series:
      entities_from: csp_capex, freq: quarterly, unit: usd}
 
   # ---------- C2 rates ----------
+  - {id: vix3m,    layer: L4.dealer_gamma, source: fred_csv, params: {id: VXVCLS}, freq: daily, unit: index,
+     note: Cboe 3-month VIX; VIX / VIX3M above 1 means near-term protection costs more than later}
+  - {id: sox,      layer: L6.valuation, source: fred_csv, params: {id: NASDAQSOX}, freq: daily, unit: index,
+     note: PHLX Semiconductor index, price only}
   - {id: ust10y,   layer: L1.long_end, source: fred_csv, params: {id: DGS10},  freq: daily, unit: pct}
   - {id: ust2y,    layer: L1.fed_path, source: fred_csv, params: {id: DGS2},   freq: daily, unit: pct}
   - {id: ust2s10s, layer: L1.long_end, source: fred_csv, params: {id: T10Y2Y}, freq: daily, unit: pct}
