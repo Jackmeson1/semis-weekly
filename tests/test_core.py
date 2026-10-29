@@ -11,7 +11,7 @@ from pathlib import Path
 
 import duckdb
 
-from semis import casebook, chains, fetch, render, signals
+from semis import casebook, chains, fetch, judges, render, signals
 from semis.__main__ import _ids_shown, _numbers_in, _unmatched
 from semis.config import ID_RE, ROOT, expand_id, glossary
 
@@ -304,3 +304,39 @@ class CaseMatch(unittest.TestCase):
         calm = {'a': 'off', 'b': 'off', 'c': 'off'}
         self.assertEqual(casebook.match(calm, calm, keep)[0], 1.0)
         self.assertEqual(casebook.match(now, calm, keep)[0], 0.0)
+
+
+class JudgeSources(unittest.TestCase):
+    """Judges read anything in the index, except the other readings of the same week."""
+
+    def test_kept_apart(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run = root / 'logs' / '2026-W44'
+            (run / 'inputs').mkdir(parents=True)
+            (run / 'judges').mkdir()
+            for f in ('C1-credit.md', 'near.md', 'synthesis.md', 'judges/other.md', 'inputs/C1.json'):
+                (run / f).write_text('{}', encoding='utf-8')
+            cases = root / 'private' / 'casebook'
+            cases.mkdir(parents=True)
+            cards = [{'video': '01', 'date': '2026-10-27', 'data_run': '2026-W43'},   # same days: held back
+                     {'video': '09', 'date': '2026-09-01', 'data_run': '2026-W35'}]
+            (cases / 'index.json').write_text(json.dumps(cards), encoding='utf-8')
+            for c in cards:
+                (cases / f"{c['video']}.md").write_text('x', encoding='utf-8')
+            old_root, old_cases = judges.ROOT, casebook.CASES
+            judges.ROOT, casebook.CASES = root, cases
+            try:
+                got = {p.relative_to(root).as_posix() for p in judges.sources('2026-W44')
+                       if str(p).startswith(str(root))}
+                self.assertEqual([c['video'] for c in judges.held_back('2026-W44')], ['01'])
+            finally:
+                judges.ROOT, casebook.CASES = old_root, old_cases
+        self.assertEqual(got, {'logs/2026-W44/C1-credit.md', 'logs/2026-W44/inputs/C1.json', 'private/casebook/09.md'})
+
+    def test_headings_skip_format_examples(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'r.md'
+            p.write_text('# Rules\n\n````markdown\n# Example log\n```json\n{}\n```\n````\n\n## Real section\n', encoding='utf-8')
+            self.assertEqual(judges._heads(p), ['Rules', 'Real section'])
+

@@ -160,6 +160,8 @@ $P -m semis check  --run 2026-W44                 # every number has a source, n
 $P -m semis ingest --run 2026-W44                 # record the conclusions
 $P -m semis chains --run 2026-W44                 # the state of every chain link
 $P -m semis cases  --run 2026-W44                 # past cases whose link states look most like this week
+$P -m semis index  --run 2026-W44                 # an index of every file a model may read, and every series in one table
+$P -m semis prompt --run 2026-W44 --judge <name>  # the task for one strong model to judge the whole week from that index
 #   then write far, mid, near and the conclusion per playbook/en/aggregation.md; check and ingest again
 $P -m semis render --run 2026-W44                 # build reports/2026-W44.html
 $P -m semis review                                 # calls from 4–8 weeks ago that are due for a look back

@@ -20,7 +20,7 @@ import re
 import sys
 import traceback
 
-from . import casebook, chains, fetch, signals
+from . import casebook, chains, fetch, judges, signals
 from .config import ID_RE, ROOT, lang, locale, localized, playbook_dir, run_id, signal_defs
 from .db import connect
 
@@ -144,8 +144,23 @@ def cmd_packet(a):
 
 
 def cmd_prompt(a):
-    """The level-1 task for one channel: the language's prompt-level1.md with its per-channel notes filled in."""
+    """The level-1 task for one channel: the language's prompt-level1.md with its per-channel notes filled in.
+    With --judge, the task for one independent judge of the whole week (prompt-judge.md)."""
     language = lang()
+    if a.judge:
+        pb = playbook_dir(language)
+        index = ROOT / 'logs' / a.run / 'inputs' / 'INDEX.md'
+        if not index.exists():
+            sys.exit(f'no {index.relative_to(ROOT)}: run "semis index --run {a.run}" first')
+        out = judges.judge_dir(a.run) / f'{a.judge}.md'
+        print((pb / 'prompt-judge.md').read_text(encoding='utf-8')
+              .replace('{run}', a.run).replace('{name}', a.judge).replace('{index}', str(index))
+              .replace('{out}', str(out)).replace('{playbook}', str(pb)).replace('{lang}', language)
+              .replace('{root_posix}', ROOT.as_posix()).replace('{root}', str(ROOT))
+              .replace('{{', '{').replace('}}', '}'))
+        return
+    if not a.channel:
+        sys.exit('pass --channel C1..C7, or --judge <name>')
     meta = signal_defs()['channels'][a.channel]
     pb = playbook_dir(language)
     tpl = (pb / 'prompt-level1.md').read_text(encoding='utf-8')
@@ -166,7 +181,7 @@ SCOPES = {**{v: (1, k) for k, v in CHANNEL_FILES.items()},
 
 # Identifiers, dates and counted units are not checked as numbers.
 _ID_PATTERNS = [
-    r'\d{4}-\d{2}-\d{2}', r'\d{4}-W\d{2}', r'\b(?:S-L\d-\d{2}|[A-Z]{2,7}-[A-Za-z]?-?\d{2}|CH-[A-D])\b',
+    r'\d{4}-\d{2}-\d{2}', r'\d{4}-W\d{2}', r'\b(?:S-L\d-\d{2}|[A-Z]{2,7}-[A-Za-z]?-?\d{2}|CH-[A-I])\b',
     r'\bL\d(?:\.\w+)?\b', r'\bC\d\b',
     r'\b\d+\s*(?:trading days?|days?|weeks?|months?|quarters?|years?|auctions?|companies|snapshots?)\b']
 # A language adds its own counted units in locale.yaml (check.counted_units)
@@ -245,6 +260,20 @@ def cmd_check(a):
     run_dir = ROOT / 'logs' / a.run
     pb = playbook_dir()
     bad_total = 0
+    # Judges may read anything in the index, so their numbers may come from any of those files
+    named = getattr(a, 'judge', None)
+    jpool = []
+    for log in sorted(judges.judge_dir(a.run).glob('*.md')):
+        if log.stem != named:  # judges are checked one at a time, by name; they are not part of the report
+            continue
+        if not jpool:
+            for f in judges.sources(a.run):
+                _numbers_in(f.read_text(encoding='utf-8'), jpool)
+        bad, ids = _unmatched(log, jpool), _ids_shown(log.read_text(encoding='utf-8'))
+        bad_total += len(bad) + len(ids)
+        _report(f'judges/{log.name}', bad, ids)
+    if named:
+        sys.exit(1 if bad_total else 0)
     rules = [pb / 'playbook.md', pb / 'aggregation.md', pb / 'invariants.md']
     upper = [(run_dir / f'{s}.md', 2) for s in ('near', 'mid', 'far')] + [(run_dir / 'synthesis.md', 3)]
     for log, level in upper:
@@ -286,10 +315,8 @@ def cmd_ingest(a):
                 sys.exit(1)
     con = connect()
     run_dir = ROOT / 'logs' / a.run
-    for p in sorted(run_dir.glob('*.md')):
-        if p.stem not in SCOPES:
-            continue
-        level, scope = SCOPES[p.stem]
+    logs = [(p, *SCOPES[p.stem]) for p in sorted(run_dir.glob('*.md')) if p.stem in SCOPES]
+    for p, level, scope in logs:
         text = p.read_text(encoding='utf-8')
         blocks = re.findall(r'```json\s*(\{.*?\})\s*```', text, re.S)
         if not blocks:
@@ -398,6 +425,12 @@ def cmd_cases(a):
             print(f"  {overlap:.2f} {agreement:.2f}  v{c['video']} {c['date']}  {'/'.join(c['tags'])}  {c['conclusion'][:60]}")
 
 
+def cmd_index(a):
+    path = judges.write_index(connect(), a.run)
+    print(f'-> {path.relative_to(ROOT).as_posix()} and data.md')
+
+
+
 def cmd_status(a):
     con = connect()
     print('data freshness:')
@@ -448,7 +481,10 @@ def main(argv=None):
     cal.add_argument('--outcome', required=True, help='right, wrong or unclear')
     cal.add_argument('--note')
     cal.add_argument('--threshold-change', dest='threshold_change')
-    sub.add_parser('check').add_argument('--run', required=True)
+    ck = sub.add_parser('check')
+    ck.add_argument('--run', required=True)
+    ck.add_argument('--judge', help='check only logs/<run>/judges/<name>.md')
+    sub.add_parser('index').add_argument('--run', required=True)
     sub.add_parser('render').add_argument('--run', required=True)
     sub.add_parser('chains').add_argument('--run', required=True)
     cs = sub.add_parser('cases')
@@ -457,7 +493,8 @@ def main(argv=None):
     cs.add_argument('--top', type=int, default=5)
     pr = sub.add_parser('prompt')
     pr.add_argument('--run', required=True)
-    pr.add_argument('--channel', required=True)
+    pr.add_argument('--channel')
+    pr.add_argument('--judge', help='the task for one independent judge of the week, by name')
     sub.add_parser('status')
     sub.add_parser('daily')
     a = p.parse_args(argv)
@@ -465,7 +502,7 @@ def main(argv=None):
         os.environ['SEMIS_LANG'] = a.lang
     {'fetch': cmd_fetch, 'signals': cmd_signals, 'packet': cmd_packet, 'prepare': cmd_prepare, 'prompt': cmd_prompt,
      'ingest': cmd_ingest, 'check': cmd_check, 'render': cmd_render, 'status': cmd_status,
-     'review': cmd_review, 'chains': cmd_chains, 'cases': cmd_cases, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
+     'review': cmd_review, 'chains': cmd_chains, 'cases': cmd_cases, 'index': cmd_index, 'calibrate': cmd_calibrate, 'backfill': cmd_backfill, 'daily': cmd_daily}[a.cmd](a)
 
 
 if __name__ == '__main__':
