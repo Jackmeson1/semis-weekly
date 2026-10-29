@@ -24,7 +24,8 @@ Layer: L2 · Main horizon: mid · Weight: lower than C1 and C2
 ## Common pitfalls
 
 - An identity is not causation. A fall in reverse repo does not mean the same amount of money flowed into stocks.
-- The balance sheet is a Wednesday level, while the TGA and reverse repo are daily; align the dates when mixing them.
+- Fed assets and the TGA are both Wednesday levels; the reverse repo is daily and is taken on the same Wednesday.
+  FRED's WTREGEN and WRESBAL are week averages, not Wednesday levels, so they are not mixed with WALCL.
 - A binding reading on its own is not enough for level 2 to call "mid-horizon tightening"; it needs C1 or C2 to agree.
 
 ## What to write in this week's log

@@ -7,7 +7,7 @@ Each horizon reads only the channel logs listed in the table below and answers o
 | Horizon | Question it answers | Channel logs to read | Rules that apply |
 |---|---|---|---|
 | Near (within two weeks) | Is now a good time to get in or out? | C4, and the speed part of C2 | HZ-01, INF-03, ACT-02, VETO-03 |
-| Mid (two weeks to one earnings cycle) | How large a position, and whether to hedge | C1, C2, C3, C6, C7 | HZ-02, HZ-03, VETO-02, VETO-04, CAL-01, CAL-03 |
+| Mid (two weeks to one earnings cycle) | How large a position, and whether to hedge | C1, C2, C3, C4, C6, C7 | HZ-02, HZ-03, VETO-02, VETO-04, CAL-01, CAL-03 |
 | Far (six months or more) | Does the direction for semiconductors still hold? | C5, C1's S-L3-03, `invariants.md` | HZ-04, VETO-01, NOVETO, INF-01, INF-02 |
 
 Each horizon log contains: the conclusion, the channel logs it relies on, whether channels conflict, how conflicts were resolved, the result of the transmission-chain check, and deviations and uncertainty.

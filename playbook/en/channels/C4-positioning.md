@@ -1,6 +1,6 @@
 # C4 Positioning
 
-Layer: L4 · Main horizon: near (within two weeks)
+Layer: L4 · Main horizon: near (within two weeks); the mid horizon reads it too (the author: from two weeks to three months, positioning outweighs the company layer)
 
 ## Explainer · Added
 

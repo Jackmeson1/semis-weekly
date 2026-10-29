@@ -95,10 +95,11 @@ series:
 
   # ---------- C3 liquidity plumbing (all FRED, aligned on Wednesdays) ----------
   - {id: fed_assets, layer: L2.qt_balance_sheet, source: fred_csv, params: {id: WALCL},     freq: weekly, unit: usd_mn}
-  - {id: tga,        layer: L2.tga,              source: fred_csv, params: {id: WTREGEN},   freq: weekly, unit: usd_mn,
-     note: Wednesday level. Daily data is available from Treasury FiscalData; planned for v2}
+  - {id: tga,        layer: L2.tga,              source: fred_csv, params: {id: WDTGAL},    freq: weekly, unit: usd_mn,
+     note: Wednesday level, to match WALCL (WTREGEN is the week average). Daily data is in Treasury FiscalData}
   - {id: on_rrp,     layer: L2.rrp_reserves,     source: fred_csv, params: {id: RRPONTSYD}, freq: daily,  unit: usd_bn}
-  - {id: reserves,   layer: L2.rrp_reserves,     source: fred_csv, params: {id: WRESBAL},   freq: weekly, unit: usd_mn}
+  - {id: reserves,   layer: L2.rrp_reserves,     source: fred_csv, params: {id: WRESBAL},   freq: weekly, unit: usd_mn,
+     note: Week average; the Wednesday level is WRBWFRBL}
 
   # ---------- C4 positioning ----------
   - {id: vix, layer: L4.dealer_gamma, source: cboe_vix, freq: daily, unit: index}
