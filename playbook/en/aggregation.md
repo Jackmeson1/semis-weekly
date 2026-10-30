@@ -4,9 +4,11 @@
 
 Each horizon reads only the channel logs listed in the table below and answers one question. Do not go back to the raw signals; if you need a number, cite the number in the channel log.
 
+**Near flags risk; it does not time.** Calls on the next two weeks are not accurate, and the log says so. The near log only answers whether conditions would amplify a short-run drop; it does not say "add now" or "cut now". The action comes from far and mid. (A choice of this project, made in 2026-10.)
+
 | Horizon | Question it answers | Channel logs to read | Rules that apply |
 |---|---|---|---|
-| Near (within two weeks) | Is now a good time to get in or out? | C4, and the speed part of C2 | HZ-01, INF-03, ACT-02, VETO-03 |
+| Near (within two weeks) | Would a drop be amplified in the short run? (a risk flag only) | C4, and the speed part of C2 | HZ-01, INF-03, ACT-02, VETO-03 |
 | Mid (two weeks to one earnings cycle) | How large a position, and whether to hedge | C1, C2, C3, C4, C6, C7 | HZ-02, HZ-03, VETO-02, VETO-04, CAL-01, CAL-03 |
 | Far (six months or more) | Does the direction for semiconductors still hold? | C5, C1's S-L3-03, `invariants.md` | HZ-04, VETO-01, NOVETO, INF-01, INF-02 |
 
@@ -84,7 +86,7 @@ File `logs/<week>/synthesis.md`. Numbers must come only from level 1 and level 2
 **One line**: ……
 
 ## Roles
-Far sets direction: ……; mid sets position size and hedging: ……; near sets timing: ……
+Far sets direction: ……; mid sets position size and hedging: ……; near flags short-run risk: ……
 
 ## Exception checks
 Three questions, each answered yes or no with the evidence: Is funding blocked? Is strong industry data hiding a funding risk? Are rate volatility and credit spreads in trouble at the same time?
@@ -106,7 +108,7 @@ Three questions, each answered yes or no with the evidence: Is funding blocked? 
 
 Read the three horizon logs and `invariants.md`, and reach a conclusion in the following order.
 
-1. **Roles** (ACT-01): far sets direction, mid sets position size and hedging, near sets the timing of entries and exits.
+1. **Roles** (ACT-01): far sets direction, mid sets position size and hedging. Near only flags short-run risk; it is not accurate and does not set the timing of entries and exits (a choice of this project, see section 1).
 2. **Exceptions**:
    - VETO-01: when C1 is binding and S-L3-03 is binding, the mid-horizon conclusion may downgrade the far-horizon direction.
    - CAL-02: when industry (C5) looks very good while credit (C1) is deteriorating, follow credit.

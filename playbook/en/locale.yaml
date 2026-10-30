@@ -20,8 +20,8 @@ ui:
     - How big, and hedged or not?
     near:
     - Near
-    - Under 2 weeks
-    - Is now a good time to act?
+    - Under 2 weeks · risk flag only
+    - Would a drop be amplified? Near-term calls are not accurate; not for timing
   nav:
     synthesis: Synthesis
     horizons: Horizons
